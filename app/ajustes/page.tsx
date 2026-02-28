@@ -1,7 +1,6 @@
 "use client"
 
 import { Settings, Palette, LayoutGrid, Building2, Users, Bell, Database } from "lucide-react"
-import { ThemeSwitcher } from "@/components/theme-switcher"
 
 const settingsSections = [
   {
@@ -48,21 +47,6 @@ export default function AjustesPage() {
         </div>
       </header>
 
-      {/* Appearance Section */}
-      <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
-        <div className="mb-5 flex items-center gap-2">
-          <Palette className="h-5 w-5 text-primary" />
-          <div>
-            <h2 className="text-lg font-semibold text-card-foreground">
-              Apariencia
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Personaliza el modo visual y la paleta de colores del sistema.
-            </p>
-          </div>
-        </div>
-        <ThemeSwitcher />
-      </section>
 
       {/* Settings Grid */}
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
