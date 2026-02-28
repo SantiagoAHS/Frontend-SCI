@@ -1,14 +1,49 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-
 
 const LoginForm = () => {
   const router = useRouter();
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault(); // evita recargar la página
-    router.push("/");   // home
+  const [numeroEmpleado, setNumeroEmpleado] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    try {
+      const response = await fetch("http://127.0.0.1:8000/api/login/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          numero_empleado: numeroEmpleado,
+          password: password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || "Error al iniciar sesión");
+        return;
+      }
+
+      // Guardar token en localStorage
+      localStorage.setItem("token", data.token);
+
+      // Opcional: guardar usuario
+      localStorage.setItem("user", JSON.stringify(data.user));
+
+      // Redirigir al home
+      router.push("/");
+    } catch (err) {
+      setError("Error de conexión con el servidor");
+    }
   };
 
   return (
@@ -19,12 +54,15 @@ const LoginForm = () => {
 
       <div className="mb-4">
         <label className="block mb-1 text-sm text-black">
-          Correo
+          Número de empleado
         </label>
         <input
-          type="email"
+          type="text"
+          value={numeroEmpleado}
+          onChange={(e) => setNumeroEmpleado(e.target.value)}
           className="w-full border rounded px-3 py-2 text-black focus:outline-none focus:ring-2 focus:ring-black"
-          placeholder="correo@ejemplo.com"
+          placeholder="12345"
+          required
         />
       </div>
 
@@ -34,10 +72,17 @@ const LoginForm = () => {
         </label>
         <input
           type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
           className="w-full border rounded px-3 py-2 text-black focus:outline-none focus:ring-2 focus:ring-black"
           placeholder="********"
+          required
         />
       </div>
+
+      {error && (
+        <p className="text-red-600 text-sm mb-4">{error}</p>
+      )}
 
       <button
         type="submit"
