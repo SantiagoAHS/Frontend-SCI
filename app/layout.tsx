@@ -1,25 +1,52 @@
-"use client";
+import type { Metadata, Viewport } from 'next'
+import { Inter } from 'next/font/google'
+import { ThemeProvider } from '@/components/theme-provider'
+import { ColorThemeProvider } from '@/components/color-theme-provider'
+import { AppSidebar } from '@/components/app-sidebar'
+import { TooltipProvider } from '@/components/ui/tooltip'
 
-import "./globals.css";
-import { useState } from "react";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
-import Sidebar from "@/components/layout/Sidebar";
+import './globals.css'
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 
+export const metadata: Metadata = {
+  title: 'Panel de Administracion',
+  description: 'Sistema de gestion de activos y prestamos',
+}
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#f8f9fa' },
+    { media: '(prefers-color-scheme: dark)', color: '#111114' },
+  ],
+}
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode
+}>) {
   return (
-    <html lang="es">
-      <body className="min-h-screen flex">
-        <Sidebar isOpen={sidebarOpen} toggle={() => setSidebarOpen(!sidebarOpen)} />
-
-        <div className={`flex flex-col grow transition-all duration-300 ${sidebarOpen ? "ml-48" : "ml-16"}`}>
-          <Header />
-          <main className="grow">{children}</main>
-          <Footer />
-        </div>
+    <html lang="es" suppressHydrationWarning>
+      <body className={`${inter.variable} font-sans antialiased`}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <ColorThemeProvider>
+            <TooltipProvider delayDuration={0}>
+              <div className="flex min-h-screen">
+                <AppSidebar />
+                <main className="flex-1 overflow-auto">
+                  {children}
+                </main>
+              </div>
+            </TooltipProvider>
+          </ColorThemeProvider>
+        </ThemeProvider>
       </body>
     </html>
-  );
+  )
 }
