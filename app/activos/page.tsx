@@ -1,143 +1,112 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { ItemCard } from "@/components/item-card"
-import type { AssetStatus, AssetType } from "@/components/status-badge"
-import { Package, Plus, Search } from "lucide-react"
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Package, Plus, Search } from "lucide-react";
+import { ItemCard } from "@/components/item-card";
+import type { AssetStatus, AssetType } from "@/components/status-badge";
 
 interface Asset {
-  title: string
-  code: string
-  description: string
-  image: string
-  status: AssetStatus
-  type: AssetType
-  responsible?: string
-  area?: string
-  extras?: Record<string, string>
+  id: number;
+  nombre: string;
+  descripcion: string;
+  tipo_activo: string;
+  area: string;
+  estado: string;
+  responsables?: string;
+  valores?: Record<string, string>;
+  image?: string; // <-- ahora opcional para evitar error
 }
 
-const allAssets: Asset[] = [
-  {
-    title: "Laptop Dell XPS 15",
-    code: "COMP-001",
-    description: "Portatil de alto rendimiento con Intel i9, ideal para desarrollo de software y diseno.",
-    image: "/images/laptop.jpg",
-    status: "Asignado",
-    type: "Computadora",
-    responsible: "Juan Perez",
-    area: "Depto. TI",
-    extras: { RAM: "32GB", Disco: "1TB SSD", Marca: "Dell" },
-  },
-  {
-    title: 'Monitor LG UltraWide 34"',
-    code: "COMP-002",
-    description: "Monitor ultrawide curvo QHD de 34 pulgadas para multitarea y diseno grafico.",
-    image: "/images/monitor.jpg",
-    status: "En Uso",
-    type: "Computadora",
-    responsible: "Ana Garcia",
-    area: "Depto. Diseno",
-    extras: { Resolucion: "3440x1440", Panel: "IPS" },
-  },
-  {
-    title: "Impresora HP LaserJet Pro",
-    code: "IMP-001",
-    description: "Impresora laser multifuncional con escaneo y copia a doble cara. Alto volumen.",
-    image: "/images/printer.jpg",
-    status: "Baja",
-    type: "Impresora",
-    area: "Depto. Finanzas",
-    extras: { Tipo: "Laser", Velocidad: "40 ppm" },
-  },
-  {
-    title: "Ford Ranger 2024",
-    code: "VEH-001",
-    description: "Camioneta pickup para labores de campo y transporte de equipo pesado.",
-    image: "/images/projector.jpg",
-    status: "En Uso",
-    type: "Vehiculo",
-    responsible: "Carlos Martinez",
-    area: "Operaciones",
-    extras: { Placa: "ABC-1234", Modelo: "2024", KM: "15,200" },
-  },
-  {
-    title: "Escritorio Ejecutivo",
-    code: "MOB-001",
-    description: "Escritorio de madera con superficie amplia, 3 cajones laterales y organizador de cables.",
-    image: "/images/keyboard.jpg",
-    status: "Asignado",
-    type: "Mobiliario",
-    area: "Depto. Direccion",
-    responsible: "Director General",
-  },
-  {
-    title: "iPad Pro 12.9\"",
-    code: "COMP-003",
-    description: "Tableta profesional con chip M2 para presentaciones moviles y diseno en campo.",
-    image: "/images/tablet.jpg",
-    status: "Mantenimiento",
-    type: "Computadora",
-    responsible: "Maria Lopez",
-    area: "Depto. Ventas",
-    extras: { Almacenamiento: "256GB", Chip: "M2" },
-  },
-  {
-    title: "Switch Cisco Catalyst 24P",
-    code: "RED-001",
-    description: "Switch de red administrable de 24 puertos Gigabit para infraestructura de red principal.",
-    image: "/images/monitor.jpg",
-    status: "Registrado",
-    type: "Equipo de Red",
-    area: "Depto. TI",
-    extras: { Puertos: "24", Velocidad: "1Gbps" },
-  },
-  {
-    title: "Taladro Bosch Industrial",
-    code: "HER-001",
-    description: "Taladro percutor profesional de 800W para uso industrial y mantenimiento de instalaciones.",
-    image: "/images/projector.jpg",
-    status: "En Uso",
-    type: "Herramientas",
-    responsible: "Roberto Diaz",
-    area: "Mantenimiento",
-    extras: { Potencia: "800W", Tipo: "Percutor" },
-  },
-  {
-    title: "Toyota Hilux 2023",
-    code: "VEH-002",
-    description: "Camioneta de carga ligera para reparto y logistica urbana de la empresa.",
-    image: "/images/laptop.jpg",
-    status: "Auditoria",
-    type: "Vehiculo",
-    responsible: "Pedro Sanchez",
-    area: "Logistica",
-    extras: { Placa: "DEF-5678", Modelo: "2023", KM: "32,100" },
-  },
-]
-
-const typeFilters: (AssetType | "Todos")[] = [
-  "Todos",
-  "Computadora",
-  "Vehiculo",
-  "Impresora",
-  "Mobiliario",
-  "Herramientas",
-  "Equipo de Red",
-]
-
 export default function ActivosPage() {
-  const [activeType, setActiveType] = useState<AssetType | "Todos">("Todos")
-  const [search, setSearch] = useState("")
+  const router = useRouter();
 
-  const filtered = allAssets.filter((a) => {
-    const matchType = activeType === "Todos" || a.type === activeType
-    const matchSearch =
-      search === "" ||
-      a.title.toLowerCase().includes(search.toLowerCase()) ||
-      a.code.toLowerCase().includes(search.toLowerCase())
-    return matchType && matchSearch
-  })
+  const [activos, setActivos] = useState<Asset[]>([]);
+  const [filteredActivos, setFilteredActivos] = useState<Asset[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [activeType, setActiveType] = useState<AssetType | "Todos">("Todos");
+
+  const typeFilters: (AssetType | "Todos")[] = [
+    "Todos",
+    "Computadora",
+    "Vehiculo",
+    "Impresora",
+    "Mobiliario",
+    "Herramientas",
+    "Equipo de Red",
+  ];
+
+  // 📥 Cargar activos desde API
+  useEffect(() => {
+    const fetchActivos = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setError("No autenticado");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const res = await fetch("http://127.0.0.1:8000/api/activos/list/", {
+          headers: {
+            Authorization: `Token ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error("Error al cargar activos: " + text);
+        }
+
+        const data = await res.json();
+        // asignamos una imagen genérica si no viene
+        const activosConImagen = data.map((a: Asset) => ({
+          ...a,
+          image: "/images/default-asset.png",
+        }));
+        setActivos(activosConImagen);
+        setFilteredActivos(activosConImagen);
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchActivos();
+  }, []);
+
+  // 🔍 Filtrado por tipo y búsqueda
+  useEffect(() => {
+    const filtered = activos.filter((a) => {
+      const matchType = activeType === "Todos" || a.tipo_activo === activeType;
+      const matchSearch =
+        search === "" ||
+        a.nombre.toLowerCase().includes(search.toLowerCase()) ||
+        a.descripcion.toLowerCase().includes(search.toLowerCase());
+      return matchType && matchSearch;
+    });
+    setFilteredActivos(filtered);
+  }, [search, activeType, activos]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p className="text-gray-500 text-lg">Cargando activos...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <p className="text-red-600">{error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6 p-6 lg:p-8">
@@ -149,14 +118,19 @@ export default function ActivosPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-balance">
-              Catalogo de Activos
+              Catálogo de Activos
             </h1>
             <p className="text-sm text-muted-foreground">
-              {filtered.length} de {allAssets.length} activos
+              {filteredActivos.length} de {activos.length} activos
             </p>
           </div>
         </div>
-        <button className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90">
+
+        {/* Botón siempre visible */}
+        <button
+          className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          onClick={() => router.push("/activos/create")}
+        >
           <Plus className="h-4 w-4" />
           Registrar Activo
         </button>
@@ -167,7 +141,7 @@ export default function ActivosPage() {
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <input
           type="text"
-          placeholder="Buscar por nombre o codigo..."
+          placeholder="Buscar por nombre o descripción..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="h-10 w-full rounded-lg border border-input bg-background pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
@@ -193,16 +167,29 @@ export default function ActivosPage() {
 
       {/* Cards Grid */}
       <section className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
-        {filtered.map((activo) => (
-          <ItemCard key={activo.code} {...activo} />
+        {filteredActivos.map((activo) => (
+          <ItemCard
+            key={activo.id}
+            title={activo.nombre}
+            code={activo.id.toString()}
+            description={activo.descripcion}
+            type={activo.tipo_activo as AssetType}
+            status={activo.estado as AssetStatus}
+            responsible={activo.responsables || ""}
+            area={activo.area}
+            image={activo.image || "/images/default-asset.png"} // ✔ obligatorio
+          />
         ))}
-        {filtered.length === 0 && (
+
+        {filteredActivos.length === 0 && (
           <div className="col-span-full flex flex-col items-center gap-2 py-16 text-center">
             <Package className="h-10 w-10 text-muted-foreground/50" />
-            <p className="text-sm text-muted-foreground">No se encontraron activos con esos criterios.</p>
+            <p className="text-sm text-muted-foreground">
+              No se encontraron activos con esos criterios.
+            </p>
           </div>
         )}
       </section>
     </div>
-  )
+  );
 }
