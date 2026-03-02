@@ -14,8 +14,16 @@ interface Asset {
   area: string;
   estado: string;
   responsables?: string;
-  valores?: Record<string, string>;
-  image?: string; // <-- ahora opcional para evitar error
+  image?: string;
+
+  valores?: {
+    id: number;
+    caracteristica: {
+      id: number;
+      nombre: string;
+    };
+    valor: string;
+  }[];
 }
 
 export default function ActivosPage() {
@@ -38,7 +46,7 @@ export default function ActivosPage() {
     "Equipo de Red",
   ];
 
-  // 📥 Cargar activos desde API
+  // Cargar activos desde API
   useEffect(() => {
     const fetchActivos = async () => {
       const token = localStorage.getItem("token");
@@ -79,7 +87,7 @@ export default function ActivosPage() {
     fetchActivos();
   }, []);
 
-  // 🔍 Filtrado por tipo y búsqueda
+  // Filtrado por tipo y búsqueda
   useEffect(() => {
     const filtered = activos.filter((a) => {
       const matchType = activeType === "Todos" || a.tipo_activo === activeType;
@@ -127,13 +135,22 @@ export default function ActivosPage() {
         </div>
 
         {/* Botón siempre visible */}
-        <button
-          className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          onClick={() => router.push("/activos/create")}
-        >
-          <Plus className="h-4 w-4" />
-          Registrar Activo
-        </button>
+        <div className="flex gap-3">
+          <button
+            className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            onClick={() => router.push("/activos/create")}
+          >
+            <Plus className="h-4 w-4" />
+            Registrar Activo
+          </button>
+
+          <button
+            className="inline-flex h-9 items-center gap-2 rounded-lg bg-red-600 px-4 text-sm font-medium text-white transition-colors hover:bg-red-700"
+            onClick={() => router.push("/activos/delete")}
+          >
+            Eliminar Activo
+          </button>
+        </div>
       </header>
 
       {/* Search Bar */}
@@ -172,12 +189,29 @@ export default function ActivosPage() {
             key={activo.id}
             title={activo.nombre}
             code={activo.id.toString()}
-            description={activo.descripcion}
+            description={
+              <>
+                <span>{activo.descripcion}</span>
+
+                {activo.valores && activo.valores.length > 0 && (
+                  <div className="mt-2 space-y-1 text-sm">
+                    {activo.valores.map((v) => (
+                      <div key={v.id}>
+                        <span className="font-medium">
+                          {v.caracteristica.nombre}:
+                        </span>{" "}
+                        {v.valor}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            }
             type={activo.tipo_activo as AssetType}
             status={activo.estado as AssetStatus}
             responsible={activo.responsables || ""}
             area={activo.area}
-            image={activo.image || "/images/default-asset.png"} // ✔ obligatorio
+            image={activo.image || "/images/default-asset.png"} // obligatorio
           />
         ))}
 

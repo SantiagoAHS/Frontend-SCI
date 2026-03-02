@@ -6,7 +6,7 @@ import { StatusBadge, TypeBadge, type AssetStatus, type AssetType } from "@/comp
 interface ItemCardProps {
   title: string
   code: string
-  description: string
+  description: React.ReactNode;
   image: string
   status: AssetStatus
   type: AssetType
@@ -49,9 +49,9 @@ export function ItemCard({
           </div>
           <TypeBadge type={type} />
         </div>
-        <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+        <div className="text-xs text-muted-foreground leading-relaxed">
           {description}
-        </p>
+        </div>
         {(responsible || area) && (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border pt-2">
             {responsible && (
