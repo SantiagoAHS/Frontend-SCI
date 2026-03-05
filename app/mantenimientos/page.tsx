@@ -1,62 +1,167 @@
 "use client"
 
-import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
 import { Wrench, Plus, Search } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-type MaintStatus = "Programado" | "En Proceso" | "Completado"
-type MaintType = "Preventivo" | "Correctivo"
-type Priority = "Alta" | "Media" | "Baja"
+type Estado = "programado" | "en_proceso" | "completado" | "cancelado"
+type Tipo = "preventivo" | "correctivo"
 
 interface Maintenance {
-  id: string
-  asset: string
-  assetCode: string
-  type: MaintType
-  scheduledDate: string
-  completedDate?: string
-  status: MaintStatus
-  technician: string
-  priority: Priority
-  notes: string
+  id: number
+  activo: string
+  tipo: Tipo
+  estado: Estado
+  fecha_ingreso: string
+  fecha_finalizacion?: string | null
+  responsable: string
+  costo?: string | null
+  descripcion_problema?: string | null
 }
 
-const maintenances: Maintenance[] = [
-  { id: "MNT-001", asset: "Ford Ranger 2024", assetCode: "VEH-001", type: "Preventivo", scheduledDate: "2026-02-20", status: "Programado", technician: "Taller Central", priority: "Media", notes: "Cambio de aceite y filtros cada 10,000 km" },
-  { id: "MNT-002", asset: "iPad Pro 12.9\"", assetCode: "COMP-003", type: "Correctivo", scheduledDate: "2026-02-10", status: "En Proceso", technician: "Soporte TI", priority: "Alta", notes: "Pantalla con lineas verticales, posible falla de display" },
-  { id: "MNT-003", asset: "Impresora HP LaserJet", assetCode: "IMP-001", type: "Correctivo", scheduledDate: "2026-01-28", completedDate: "2026-02-05", status: "Completado", technician: "HP Service", priority: "Alta", notes: "Reemplazo de fusor y rodillo de transferencia" },
-  { id: "MNT-004", asset: "Toyota Hilux 2023", assetCode: "VEH-002", type: "Preventivo", scheduledDate: "2026-03-01", status: "Programado", technician: "Taller Central", priority: "Baja", notes: "Revision de frenos y suspension. Programado para proximo mes" },
-  { id: "MNT-005", asset: "Switch Cisco 24P", assetCode: "RED-001", type: "Preventivo", scheduledDate: "2026-02-15", status: "En Proceso", technician: "Equipo de Redes", priority: "Media", notes: "Actualizacion de firmware y revision de puertos" },
-  { id: "MNT-006", asset: "Laptop Dell XPS 15", assetCode: "COMP-001", type: "Preventivo", scheduledDate: "2026-01-15", completedDate: "2026-01-16", status: "Completado", technician: "Soporte TI", priority: "Baja", notes: "Limpieza interna, pasta termica y actualizacion de BIOS" },
-]
-
-const statusStyles: Record<MaintStatus, string> = {
-  Programado: "bg-blue-500/15 text-blue-700 dark:text-blue-400",
-  "En Proceso": "bg-amber-500/15 text-amber-700 dark:text-amber-400",
-  Completado: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
+const estadoLabels: Record<Estado, string> = {
+  programado: "Programado",
+  en_proceso: "En Proceso",
+  completado: "Completado",
+  cancelado: "Cancelado",
 }
 
-const priorityStyles: Record<Priority, string> = {
-  Alta: "bg-red-500/15 text-red-700 dark:text-red-400",
-  Media: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
-  Baja: "bg-muted text-muted-foreground",
+const tipoStyles: Record<Tipo, string> = {
+  preventivo: "bg-blue-500/15 text-blue-700 dark:text-blue-400",
+  correctivo: "bg-orange-500/15 text-orange-700 dark:text-orange-400",
 }
 
-const statusFilters: (MaintStatus | "Todos")[] = ["Todos", "Programado", "En Proceso", "Completado"]
+const estadoStyles: Record<Estado, string> = {
+  programado: "bg-blue-500/15 text-blue-700 dark:text-blue-400",
+  en_proceso: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
+  completado: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
+  cancelado: "bg-red-500/15 text-red-700 dark:text-red-400",
+}
+
+const statusFilters: (Estado | "Todos")[] = ["Todos", "programado", "en_proceso", "completado", "cancelado"]
 
 export default function MantenimientosPage() {
-  const [activeFilter, setActiveFilter] = useState<MaintStatus | "Todos">("Todos")
+  const router = useRouter()
+
+  const [maintenances, setMaintenances] = useState<Maintenance[]>([])
+  const [activeFilter, setActiveFilter] = useState<Estado | "Todos">("Todos")
   const [search, setSearch] = useState("")
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+
+  useEffect(() => {
+    const fetchMaintenances = async () => {
+      const token = localStorage.getItem("token")
+      if (!token) {
+        setError("No autenticado")
+        setLoading(false)
+        return
+      }
+
+      try {
+        const res = await fetch("http://localhost:8000/api/mantenimientos/list/", {
+          headers: {
+            Authorization: `Token ${token}`,
+            "Content-Type": "application/json",
+          },
+        })
+
+        if (!res.ok) {
+          const text = await res.text()
+          throw new Error("Error cargando mantenimientos: " + text)
+        }
+
+        const data = await res.json()
+        const lista = Array.isArray(data) ? data : data.results || []
+        setMaintenances(lista)
+      } catch (err: any) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchMaintenances()
+  }, [])
+
+  const actualizarMantenimientos = async () => {
+  const token = localStorage.getItem("token")
+
+    if (!token) {
+      alert("No autenticado")
+      return
+    }
+
+    try {
+      const res = await fetch("http://localhost:8000/api/generar-preventivos/", {
+        method: "POST",
+        headers: {
+          Authorization: `Token ${token}`,
+          "Content-Type": "application/json",
+        },
+      })
+
+      if (!res.ok) {
+        const text = await res.text()
+        throw new Error(text)
+      }
+
+      const data = await res.json()
+
+      alert(data.mensaje)
+
+      // volver a cargar mantenimientos
+      window.location.reload()
+
+    } catch (err) {
+      console.error(err)
+      alert("Error actualizando mantenimientos")
+    }
+  }
+
+  const cambiarEstado = async (id: number, nuevoEstado: Estado) => {
+  const token = localStorage.getItem("token")
+
+    try {
+      const res = await fetch(`http://localhost:8000/api/mantenimientos/${id}/estado/`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Token ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          estado: nuevoEstado,
+        }),
+      })
+
+      if (!res.ok) {
+        const text = await res.text()
+        throw new Error(text)
+      }
+
+      // refrescar lista
+      setMaintenances((prev) =>
+        prev.map((m) =>
+          m.id === id ? { ...m, estado: nuevoEstado } : m
+        )
+      )
+    } catch (err) {
+      console.error("Error cambiando estado", err)
+    }
+  }
 
   const filtered = maintenances.filter((m) => {
-    const matchStatus = activeFilter === "Todos" || m.status === activeFilter
+    const matchStatus = activeFilter === "Todos" || m.estado === activeFilter
     const matchSearch =
       search === "" ||
-      m.asset.toLowerCase().includes(search.toLowerCase()) ||
-      m.assetCode.toLowerCase().includes(search.toLowerCase()) ||
-      m.technician.toLowerCase().includes(search.toLowerCase())
+      m.activo.toLowerCase().includes(search.toLowerCase()) ||
+      m.responsable.toLowerCase().includes(search.toLowerCase())
     return matchStatus && matchSearch
   })
+
+  if (loading) return <div className="p-8 text-sm text-muted-foreground">Cargando mantenimientos...</div>
+  if (error) return <div className="p-8 text-sm text-red-500">{error}</div>
 
   return (
     <div className="flex flex-col gap-6 p-6 lg:p-8">
@@ -66,114 +171,122 @@ export default function MantenimientosPage() {
             <Wrench className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-balance">
-              Mantenimientos
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {filtered.length} registros de mantenimiento
-            </p>
+            <h1 className="text-2xl font-bold tracking-tight text-balance">Mantenimientos</h1>
+            <p className="text-sm text-muted-foreground">{filtered.length} registros de mantenimiento</p>
           </div>
         </div>
-        <button className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90">
-          <Plus className="h-4 w-4" />
-          Programar Mantenimiento
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => router.push("/mantenimientos/create")}
+            className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm hover:opacity-90"
+          >
+            <Plus className="h-4 w-4" />
+            Programar mantenimiento
+          </button>
+
+          <button
+            onClick={actualizarMantenimientos}
+            className="flex items-center gap-2 border border-border px-4 py-2 rounded-lg text-sm hover:bg-accent"
+          >
+            Actualizar mantenimientos
+          </button>
+        </div>
       </header>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {([
-          { label: "Programados", count: maintenances.filter(m => m.status === "Programado").length, style: "text-blue-600 dark:text-blue-400" },
-          { label: "En Proceso", count: maintenances.filter(m => m.status === "En Proceso").length, style: "text-amber-600 dark:text-amber-400" },
-          { label: "Completados", count: maintenances.filter(m => m.status === "Completado").length, style: "text-emerald-600 dark:text-emerald-400" },
-        ] as const).map((s) => (
-          <div key={s.label} className="flex items-center gap-4 rounded-xl border border-border bg-card p-5 shadow-sm">
-            <div className="flex flex-col">
-              <span className="text-xs font-medium text-muted-foreground">{s.label}</span>
-              <span className={cn("text-2xl font-bold", s.style)}>{s.count}</span>
-            </div>
-          </div>
+      {/* Filtros */}
+      <div className="flex flex-wrap gap-2">
+        {statusFilters.map((f) => (
+          <button
+            key={f}
+            onClick={() => setActiveFilter(f)}
+            className={cn(
+              "inline-flex items-center rounded-full px-3 py-1.5 text-xs font-semibold transition-colors",
+              activeFilter === f
+                ? "bg-primary text-primary-foreground"
+                : "border border-border bg-card text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+            )}
+          >
+            {f === "Todos" ? "Todos" : estadoLabels[f as Estado]}
+          </button>
         ))}
       </div>
 
-      {/* Search */}
-      <div className="relative">
+      {/* Buscador */}
+      <div className="relative mt-2">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <input
           type="text"
-          placeholder="Buscar por activo, codigo o tecnico..."
+          placeholder="Buscar por activo o responsable..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="h-10 w-full rounded-lg border border-input bg-background pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
         />
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-2">
-        {statusFilters.map((f) => (
-          <button
-            key={f}
-            onClick={() => setActiveFilter(f)}
-            className={
-              activeFilter === f
-                ? "inline-flex items-center rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-colors"
-                : "inline-flex items-center rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-            }
-          >
-            {f}
-          </button>
-        ))}
-      </div>
-
-      {/* Table */}
-      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+      {/* Tabla */}
+      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm mt-4">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/50">
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground">Activo</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground">Tipo</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground">Prioridad</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground">Fecha Prog.</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground">Tecnico</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground">Estado</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground">Fecha ingreso</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground">Fecha finalización</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground">Responsable</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground">Costo</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground">Acciones</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((m) => (
-                <tr key={m.id} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
+                <tr key={m.id} className="border-b border-border last:border-0 hover:bg-muted/50">
+                  <td className="px-6 py-3">{m.activo}</td>
                   <td className="px-6 py-3">
-                    <div className="flex flex-col">
-                      <span className="font-medium text-card-foreground">{m.asset}</span>
-                      <span className="text-xs font-mono text-muted-foreground">{m.assetCode}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-3">
-                    <span className={cn(
-                      "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold",
-                      m.type === "Preventivo" ? "bg-blue-500/15 text-blue-700 dark:text-blue-400" : "bg-orange-500/15 text-orange-700 dark:text-orange-400"
-                    )}>
-                      {m.type}
+                    <span className={cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold", tipoStyles[m.tipo])}>
+                      {m.tipo.charAt(0).toUpperCase() + m.tipo.slice(1)}
                     </span>
                   </td>
                   <td className="px-6 py-3">
-                    <span className={cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold", priorityStyles[m.priority])}>
-                      {m.priority}
+                    <span className={cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold", estadoStyles[m.estado])}>
+                      {estadoLabels[m.estado]}
                     </span>
                   </td>
-                  <td className="px-6 py-3 text-muted-foreground">{m.scheduledDate}</td>
-                  <td className="px-6 py-3 text-card-foreground">{m.technician}</td>
+                  <td className="px-6 py-3">{m.fecha_ingreso}</td>
+                  <td className="px-6 py-3">{m.fecha_finalizacion || "-"}</td>
+                  <td className="px-6 py-3">{m.responsable}</td>
+                  <td className="px-6 py-3">{m.costo ? `$${m.costo}` : "-"}</td>
                   <td className="px-6 py-3">
-                    <span className={cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold", statusStyles[m.status])}>
-                      {m.status}
-                    </span>
+                    {m.estado === "programado" && (
+                      <button
+                        onClick={() => cambiarEstado(m.id, "en_proceso")}
+                        className="text-xs bg-blue-500 text-white px-3 py-1 rounded hover:opacity-90"
+                      >
+                        Iniciar
+                      </button>
+                    )}
+
+                    {m.estado === "en_proceso" && (
+                      <button
+                        onClick={() => cambiarEstado(m.id, "completado")}
+                        className="text-xs bg-green-600 text-white px-3 py-1 rounded hover:opacity-90"
+                      >
+                        Finalizar
+                      </button>
+                    )}
+
+                    {(m.estado === "completado" || m.estado === "cancelado") && (
+                      <span className="text-xs text-muted-foreground">Sin acciones</span>
+                    )}
                   </td>
                 </tr>
               ))}
+
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-16 text-center text-sm text-muted-foreground">
-                    No se encontraron mantenimientos con esos criterios.
+                  <td colSpan={7} className="px-6 py-16 text-center text-sm text-muted-foreground">
+                    No se encontraron mantenimientos
                   </td>
                 </tr>
               )}
