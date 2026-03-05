@@ -1,162 +1,323 @@
 "use client"
 
-import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
 import { ArrowRightLeft, Search, Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-type AssignmentStatus = "Activa" | "Pendiente devolucion" | "Vencida"
-type AssignmentType = "Area" | "Persona" | "Ambos"
-
-interface Assignment {
-  id: string
-  asset: string
-  assetCode: string
-  type: AssignmentType
-  responsible: string
-  area?: string
-  date: string
-  status: AssignmentStatus
+interface Prestamo {
+  id: number
+  activo: number
+  activo_nombre: string
+  responsable_nombre: string
+  tipo_prestamo: string
+  estado: string
+  estado_calculado: string
+  fecha_inicio: string
+  fecha_fin: string
 }
 
-const assignments: Assignment[] = [
-  { id: "ASG-001", asset: "Laptop Dell XPS 15", assetCode: "COMP-001", type: "Persona", responsible: "Juan Perez", area: "Depto. TI", date: "2026-01-15", status: "Activa" },
-  { id: "ASG-002", asset: 'Monitor LG 34"', assetCode: "COMP-002", type: "Ambos", responsible: "Ana Garcia", area: "Depto. Diseno", date: "2026-01-10", status: "Activa" },
-  { id: "ASG-003", asset: "Ford Ranger 2024", assetCode: "VEH-001", type: "Persona", responsible: "Carlos Martinez", date: "2025-11-20", status: "Activa" },
-  { id: "ASG-004", asset: "iPad Pro 12.9\"", assetCode: "COMP-003", type: "Persona", responsible: "Maria Lopez", area: "Depto. Ventas", date: "2025-12-01", status: "Pendiente devolucion" },
-  { id: "ASG-005", asset: "Escritorio Ejecutivo", assetCode: "MOB-001", type: "Area", responsible: "Director General", area: "Depto. Direccion", date: "2025-08-15", status: "Activa" },
-  { id: "ASG-006", asset: "Impresora HP LaserJet", assetCode: "IMP-001", type: "Area", responsible: "Piso 3", area: "Depto. Finanzas", date: "2025-06-01", status: "Vencida" },
-  { id: "ASG-007", asset: "Taladro Bosch Industrial", assetCode: "HER-001", type: "Persona", responsible: "Roberto Diaz", area: "Mantenimiento", date: "2026-02-01", status: "Activa" },
-  { id: "ASG-008", asset: "Toyota Hilux 2023", assetCode: "VEH-002", type: "Ambos", responsible: "Pedro Sanchez", area: "Logistica", date: "2025-09-10", status: "Pendiente devolucion" },
-]
-
-const statusStyles: Record<AssignmentStatus, string> = {
-  Activa: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
-  "Pendiente devolucion": "bg-amber-500/15 text-amber-700 dark:text-amber-400",
-  Vencida: "bg-red-500/15 text-red-700 dark:text-red-400",
+const statusStyles: Record<string, string> = {
+  activo: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
+  finalizado: "bg-gray-500/15 text-gray-700 dark:text-gray-400",
+  vencido: "bg-red-500/15 text-red-700 dark:text-red-400",
+  cancelado: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
 }
 
-const typeStyles: Record<AssignmentType, string> = {
-  Persona: "bg-blue-500/15 text-blue-700 dark:text-blue-400",
-  Area: "bg-violet-500/15 text-violet-700 dark:text-violet-400",
-  Ambos: "bg-teal-500/15 text-teal-700 dark:text-teal-400",
-}
-
-const statusFilters: (AssignmentStatus | "Todos")[] = ["Todos", "Activa", "Pendiente devolucion", "Vencida"]
+const statusFilters = ["Todos", "activo", "finalizado", "vencido", "cancelado"]
 
 export default function AsignacionesPage() {
-  const [activeFilter, setActiveFilter] = useState<AssignmentStatus | "Todos">("Todos")
+  const router = useRouter()
+
+  const [prestamos, setPrestamos] = useState<Prestamo[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const [activeFilter, setActiveFilter] = useState<string>("Todos")
   const [search, setSearch] = useState("")
 
-  const filtered = assignments.filter((a) => {
-    const matchStatus = activeFilter === "Todos" || a.status === activeFilter
+  useEffect(() => {
+
+    const fetchPrestamos = async () => {
+
+      const token = localStorage.getItem("token")
+
+      if (!token) {
+        setError("No autenticado")
+        setLoading(false)
+        return
+      }
+
+      try {
+
+        const res = await fetch("http://127.0.0.1:8000/api/prestamos/list/", {
+          headers: {
+            Authorization: `Token ${token}`,
+            "Content-Type": "application/json",
+          },
+        })
+
+        if (!res.ok) {
+          const text = await res.text()
+          throw new Error("Error cargando préstamos: " + text)
+        }
+
+        const data = await res.json()
+
+        const lista = data.results || data
+
+        setPrestamos(lista)
+
+      } catch (err: any) {
+
+        setError(err.message)
+
+      } finally {
+
+        setLoading(false)
+
+      }
+    }
+
+    fetchPrestamos()
+
+  }, [])
+
+  const finalizarPrestamo = async (id: number) => {
+
+    const token = localStorage.getItem("token")
+
+    if (!token) {
+      alert("No autenticado")
+      return
+    }
+
+    const confirmar = confirm("¿Deseas finalizar este préstamo?")
+
+    if (!confirmar) return
+
+    try {
+
+      const res = await fetch(`http://127.0.0.1:8000/api/prestamos/${id}/finalizar/`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Token ${token}`,
+          "Content-Type": "application/json",
+        },
+      })
+
+      if (!res.ok) {
+        const text = await res.text()
+        throw new Error(text)
+      }
+
+      // actualizar estado en la tabla sin recargar
+      setPrestamos((prev) =>
+        prev.map((p) =>
+          p.id === id
+            ? { ...p, estado: "finalizado", estado_calculado: "finalizado" }
+            : p
+        )
+      )
+
+    } catch (err: any) {
+      alert("Error: " + err.message)
+    }
+  }
+
+  const filtered = prestamos.filter((a) => {
+
+    const matchStatus =
+      activeFilter === "Todos" || a.estado_calculado === activeFilter
+
     const matchSearch =
       search === "" ||
-      a.asset.toLowerCase().includes(search.toLowerCase()) ||
-      a.responsible.toLowerCase().includes(search.toLowerCase()) ||
-      a.assetCode.toLowerCase().includes(search.toLowerCase())
+      a.activo_nombre?.toLowerCase().includes(search.toLowerCase()) ||
+      a.responsable_nombre?.toLowerCase().includes(search.toLowerCase())
+
     return matchStatus && matchSearch
+
   })
 
+  if (loading) {
+    return <div className="p-10 text-center">Cargando préstamos...</div>
+  }
+
+  if (error) {
+    return <div className="p-10 text-center text-red-500">{error}</div>
+  }
+
   return (
+
     <div className="flex flex-col gap-6 p-6 lg:p-8">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-            <ArrowRightLeft className="h-5 w-5 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-balance">
-              Asignaciones
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {filtered.length} asignaciones registradas
-            </p>
-          </div>
+
+      <header className="flex items-center justify-between">
+
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+          <ArrowRightLeft className="h-5 w-5 text-primary" />
         </div>
-        <button className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90">
+
+        <div>
+          <h1 className="text-2xl font-bold">Préstamos</h1>
+          <p className="text-sm text-muted-foreground">
+            {filtered.length} registros
+          </p>
+        </div>
+
+        <button
+          onClick={() => router.push("/asignaciones/create")}
+          className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm hover:opacity-90"
+        >
           <Plus className="h-4 w-4" />
-          Nueva Asignacion
+          Nuevo préstamo
         </button>
+
       </header>
 
-      {/* Search */}
+      {/* Buscador */}
+
       <div className="relative">
+
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+
         <input
           type="text"
-          placeholder="Buscar por activo, codigo o responsable..."
+          placeholder="Buscar por activo o responsable..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="h-10 w-full rounded-lg border border-input bg-background pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
+          className="h-10 w-full rounded-lg border pl-10 pr-4 text-sm"
         />
+
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-2">
+      {/* Filtros */}
+
+      <div className="flex gap-2 flex-wrap">
+
         {statusFilters.map((f) => (
+
           <button
             key={f}
             onClick={() => setActiveFilter(f)}
             className={
               activeFilter === f
-                ? "inline-flex items-center rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-colors"
-                : "inline-flex items-center rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                ? "bg-primary text-white px-3 py-1 rounded-full text-xs"
+                : "border px-3 py-1 rounded-full text-xs"
             }
           >
             {f}
           </button>
+
         ))}
+
       </div>
 
-      {/* Table */}
-      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+      {/* Tabla */}
+
+      <div className="overflow-hidden rounded-xl border bg-card">
+
         <div className="overflow-x-auto">
+
           <table className="w-full text-sm">
+
             <thead>
-              <tr className="border-b border-border bg-muted/50">
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground">Activo</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground">Tipo</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground">Responsable</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground">Area</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground">Fecha</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground">Estado</th>
+
+              <tr className="border-b bg-muted/50">
+
+                <th className="px-6 py-3 text-left text-xs">ID</th>
+                <th className="px-6 py-3 text-left text-xs">Activo</th>
+                <th className="px-6 py-3 text-left text-xs">Responsable</th>
+                <th className="px-6 py-3 text-left text-xs">Tipo préstamo</th>
+                <th className="px-6 py-3 text-left text-xs">Estado</th>
+                <th className="px-6 py-3 text-left text-xs">Fecha inicio</th>
+                <th className="px-6 py-3 text-left text-xs">Fecha fin</th>
+                <th className="px-6 py-3 text-left text-xs">Acciones</th>
+
               </tr>
+
             </thead>
+
             <tbody>
-              {filtered.map((a) => (
-                <tr key={a.id} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
+
+              {filtered.map((p) => (
+
+                <tr key={p.id} className="border-b hover:bg-muted/50">
+
+                  <td className="px-6 py-3">{p.id}</td>
+
                   <td className="px-6 py-3">
-                    <div className="flex flex-col">
-                      <span className="font-medium text-card-foreground">{a.asset}</span>
-                      <span className="text-xs font-mono text-muted-foreground">{a.assetCode}</span>
-                    </div>
+                    {p.activo_nombre} 
                   </td>
+
+                  <td className="px-6 py-3">{p.responsable_nombre}</td>
+
+                  <td className="px-6 py-3">{p.tipo_prestamo}</td>
+
                   <td className="px-6 py-3">
-                    <span className={cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold", typeStyles[a.type])}>
-                      {a.type}
+
+                    <span
+                      className={cn(
+                        "rounded-full px-2 py-1 text-xs font-semibold",
+                        statusStyles[p.estado_calculado] || "bg-gray-500/15"
+                      )}
+                    >
+                      {p.estado_calculado}
                     </span>
+
                   </td>
-                  <td className="px-6 py-3 text-card-foreground">{a.responsible}</td>
-                  <td className="px-6 py-3 text-muted-foreground">{a.area || "-"}</td>
-                  <td className="px-6 py-3 text-muted-foreground">{a.date}</td>
+
                   <td className="px-6 py-3">
-                    <span className={cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold", statusStyles[a.status])}>
-                      {a.status}
-                    </span>
+                    {new Date(p.fecha_inicio).toLocaleDateString()}
                   </td>
+
+                  <td className="px-6 py-3">
+                    {new Date(p.fecha_fin).toLocaleDateString()}
+                  </td>
+
+                  <td className="px-6 py-3">
+                    {p.estado_calculado === "activo" || p.estado_calculado === "vencido" ? (
+
+                      <button
+                        onClick={() => finalizarPrestamo(p.id)}
+                        className="bg-blue-600 text-white px-3 py-1 rounded-md text-xs hover:opacity-90"
+                      >
+                        Finalizar
+                      </button>
+
+                    ) : (
+
+                      <span className="text-xs text-gray-400">
+                        —
+                      </span>
+
+                    )}
+                  </td>
+
                 </tr>
+
               ))}
+
               {filtered.length === 0 && (
+
                 <tr>
-                  <td colSpan={6} className="px-6 py-16 text-center text-sm text-muted-foreground">
-                    No se encontraron asignaciones con esos criterios.
+
+                  <td colSpan={7} className="text-center py-10 text-muted-foreground">
+                    No se encontraron resultados
                   </td>
+
                 </tr>
+
               )}
+
             </tbody>
+
           </table>
+
         </div>
+
       </div>
+
     </div>
+
   )
 }
