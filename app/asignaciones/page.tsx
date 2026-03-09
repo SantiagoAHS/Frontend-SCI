@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
-import { ArrowRightLeft, Search, Plus } from "lucide-react"
+import { ArrowRightLeft, Search, Plus, Bell } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface Prestamo {
@@ -30,6 +30,7 @@ export default function AsignacionesPage() {
   const router = useRouter()
 
   const [prestamos, setPrestamos] = useState<Prestamo[]>([])
+  const [notificaciones, setNotificaciones] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -80,6 +81,42 @@ export default function AsignacionesPage() {
     }
 
     fetchPrestamos()
+
+  }, [])
+
+  useEffect(() => {
+
+    const fetchNotificaciones = async () => {
+
+      const token = localStorage.getItem("token")
+
+      if (!token) return
+
+      try {
+
+        const res = await fetch("http://127.0.0.1:8000/api/prestamos/notificaciones/", {
+          headers: {
+            Authorization: `Token ${token}`,
+          },
+        })
+
+        if (!res.ok) return
+
+        const data = await res.json()
+
+        const total =
+          (data.prestamos_por_vencer?.length || 0) +
+          (data.prestamos_vencidos?.length || 0)
+
+        setNotificaciones(total)
+
+      } catch (err) {
+        console.error("Error cargando notificaciones", err)
+      }
+
+    }
+
+    fetchNotificaciones()
 
   }, [])
 
@@ -164,13 +201,31 @@ export default function AsignacionesPage() {
           </p>
         </div>
 
-        <button
-          onClick={() => router.push("/asignaciones/create")}
-          className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm hover:opacity-90"
-        >
-          <Plus className="h-4 w-4" />
-          Nuevo préstamo
-        </button>
+        <div className="flex items-center gap-3">
+
+          <button
+            onClick={() => router.push("/asignaciones/notificaciones")}
+            className="relative border px-3 py-2 rounded-lg hover:bg-accent"
+          >
+            <Bell className="h-4 w-4" />
+
+            {notificaciones > 0 && (
+              <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs px-1.5 py-0.5 rounded-full">
+                {notificaciones}
+              </span>
+            )}
+
+          </button>
+
+          <button
+            onClick={() => router.push("/asignaciones/create")}
+            className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm hover:opacity-90"
+          >
+            <Plus className="h-4 w-4" />
+            Nuevo préstamo
+          </button>
+
+        </div>
 
       </header>
 

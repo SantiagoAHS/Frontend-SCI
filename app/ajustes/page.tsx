@@ -26,13 +26,6 @@ const settingsSections = [
     route: "/ajustes/usuarios",
   },
   {
-    icon: Bell,
-    title: "Alertas y Notificaciones",
-    description:
-      "Configura alertas automaticas: mantenimiento proximo, asignaciones vencidas, activos sin verificar y vida util.",
-    route: "/ajustes/alertas",
-  },
-  {
     icon: Database,
     title: "Respaldos",
     description:
