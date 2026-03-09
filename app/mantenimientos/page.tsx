@@ -258,27 +258,54 @@ export default function MantenimientosPage() {
                   <td className="px-6 py-3">{m.responsable}</td>
                   <td className="px-6 py-3">{m.costo ? `$${m.costo}` : "-"}</td>
                   <td className="px-6 py-3">
-                    {m.estado === "programado" && (
-                      <button
-                        onClick={() => cambiarEstado(m.id, "en_proceso")}
-                        className="text-xs bg-blue-500 text-white px-3 py-1 rounded hover:opacity-90"
-                      >
-                        Iniciar
-                      </button>
-                    )}
+                    <div className="flex gap-2">
 
-                    {m.estado === "en_proceso" && (
-                      <button
-                        onClick={() => cambiarEstado(m.id, "completado")}
-                        className="text-xs bg-green-600 text-white px-3 py-1 rounded hover:opacity-90"
-                      >
-                        Finalizar
-                      </button>
-                    )}
+                      {m.estado === "programado" && (
+                        <>
+                          <button
+                            onClick={() => router.push(`/mantenimientos/${m.id}/editar`)}
+                            className="text-xs bg-gray-600 text-white px-3 py-1 rounded hover:opacity-90"
+                          >
+                            Editar
+                          </button>
 
-                    {(m.estado === "completado" || m.estado === "cancelado") && (
-                      <span className="text-xs text-muted-foreground">Sin acciones</span>
-                    )}
+                          <button
+                            onClick={() => cambiarEstado(m.id, "en_proceso")}
+                            className="text-xs bg-blue-500 text-white px-3 py-1 rounded hover:opacity-90"
+                          >
+                            Iniciar
+                          </button>
+                        </>
+                      )}
+
+                      {m.estado === "en_proceso" && (
+                        <>
+                          <button
+                            onClick={() => router.push(`/mantenimientos/${m.id}/ver`)}
+                            className="text-xs bg-gray-600 text-white px-3 py-1 rounded hover:opacity-90"
+                          >
+                            Ver
+                          </button>
+
+                          <button
+                            onClick={() => cambiarEstado(m.id, "completado")}
+                            className="text-xs bg-green-600 text-white px-3 py-1 rounded hover:opacity-90"
+                          >
+                            Finalizar
+                          </button>
+                        </>
+                      )}
+
+                      {(m.estado === "completado" || m.estado === "cancelado") && (
+                        <button
+                          onClick={() => router.push(`/mantenimientos/${m.id}/ver`)}
+                          className="text-xs bg-gray-600 text-white px-3 py-1 rounded hover:opacity-90"
+                        >
+                          Ver
+                        </button>
+                      )}
+
+                    </div>
                   </td>
                 </tr>
               ))}
