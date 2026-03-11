@@ -3,10 +3,23 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
+interface Opcion {
+  id: number;
+  nombre: string;
+}
+
+interface Caracteristica {
+  id: number;
+  nombre: string;
+  tipo_dato: string;
+  obligatorio: boolean;
+  opciones?: Opcion[];
+}
+
 interface TipoActivo {
   id: number;
   nombre: string;
-  caracteristicas: { id: number; nombre: string }[];
+  caracteristicas: Caracteristica[];
 }
 
 interface Area {
@@ -22,125 +35,172 @@ export default function CrearActivoPage() {
   const [tipoActivo, setTipoActivo] = useState<number | "">("");
   const [area, setArea] = useState<number | "">("");
   const [estado, setEstado] = useState("disponible");
+  const [imagen, setImagen] = useState<File | null>(null);
+
   const [tipos, setTipos] = useState<TipoActivo[]>([]);
   const [areas, setAreas] = useState<Area[]>([]);
-  const [valores, setValores] = useState<{ [key: number]: string }>({});
+
+  const [valores, setValores] = useState<{ [key: number]: any }>({});
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // 🔹 Cargar tipos de activos y áreas
+  // 🔹 Cargar tipos y áreas
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) return;
 
     const fetchTipos = async () => {
-      try {
-        const res = await fetch("http://127.0.0.1:8000/api/tipos-activo/", {
-          headers: { Authorization: `Token ${token}` },
-        });
-        const data = await res.json();
-        setTipos(data);
-      } catch (err) {
-        console.error("Error cargando tipos de activos", err);
-      }
+      const res = await fetch("http://127.0.0.1:8000/api/tipos-activo/", {
+        headers: { Authorization: `Token ${token}` },
+      });
+
+      const data = await res.json();
+      setTipos(data);
     };
 
     const fetchAreas = async () => {
-      try {
-        const res = await fetch(
-          "http://127.0.0.1:8000/api/areas/list/?activas=true",
-          { headers: { Authorization: `Token ${token}` } }
-        );
-        const data = await res.json();
-        setAreas(data);
-      } catch (err) {
-        console.error("Error cargando áreas", err);
-      }
+      const res = await fetch(
+        "http://127.0.0.1:8000/api/areas/list/?activas=true",
+        { headers: { Authorization: `Token ${token}` } }
+      );
+
+      const data = await res.json();
+      setAreas(data);
     };
 
     fetchTipos();
     fetchAreas();
   }, []);
 
-  // 🔹 Inicializar valores para las características cuando se selecciona un tipo
+  // 🔹 Inicializar valores
   useEffect(() => {
     if (!tipoActivo) {
       setValores({});
       return;
     }
+
     const selected = tipos.find((t) => t.id === tipoActivo);
     if (!selected) return;
 
-    const initialValores: { [key: number]: string } = {};
+    const initial: any = {};
+
     selected.caracteristicas.forEach((c) => {
-      initialValores[c.id] = ""; // Siempre string
+      initial[c.id] = "";
     });
-    setValores(initialValores);
+
+    setValores(initial);
   }, [tipoActivo, tipos]);
 
-  const handleValorChange = (id: number, value: string) => {
+  const handleValorChange = (id: number, value: any) => {
     setValores({ ...valores, [id]: value });
   };
 
+  // 🔹 Crear activo
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError("");
 
     const token = localStorage.getItem("token");
     if (!token) {
-      setError("No estás autenticado.");
-      setLoading(false);
+      setError("No autenticado");
       return;
     }
 
-    const body = {
-      nombre,
-      descripcion,
-      tipo_activo: tipoActivo,
-      area,
-      estado,
-      valores: Object.entries(valores).map(([caracteristica, valor]) => ({
-        caracteristica: Number(caracteristica),
-        valor,
-      })),
-    };
+    setLoading(true);
+    setError("");
 
-    try {
-      const res = await fetch("http://127.0.0.1:8000/api/activos/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Token ${token}`,
-        },
-        body: JSON.stringify(body),
-      });
+    const formData = new FormData();
 
-      if (!res.ok) {
-        const data = await res.json();
-        setError(data.error || "Error al crear activo");
-        setLoading(false);
-        return;
-      }
+    formData.append("nombre", nombre);
+    formData.append("descripcion", descripcion);
+    formData.append("tipo_activo", String(tipoActivo));
+    formData.append("area", String(area));
+    formData.append("estado", estado);
 
-      router.push("/activos"); // Regresar al listado
-    } catch (err) {
-      setError("Error de conexión");
-      console.error(err);
-    } finally {
-      setLoading(false);
+    if (imagen) {
+      formData.append("imagen", imagen);
     }
-  };
+
+    const valoresArray = Object.entries(valores)
+      .map(([id, valor]) => {
+
+        const caracteristica = selectedTipo?.caracteristicas.find(
+          (c) => c.id === Number(id)
+        );
+
+        if (!caracteristica) return null;
+
+        // ❗ ignorar valores vacíos
+        if (valor === "" || valor === null || valor === undefined) {
+          return null;
+        }
+
+        // SELECT
+        if (caracteristica.tipo_dato === "select") {
+          return {
+            caracteristica: Number(id),
+            opcion: Number(valor),
+          };
+        }
+
+        // BOOLEAN
+        if (caracteristica.tipo_dato === "boolean") {
+          return {
+            caracteristica: Number(id),
+            valor_texto: valor ? "true" : "false",
+          };
+        }
+
+        // OTROS
+        return {
+          caracteristica: Number(id),
+          valor_texto: String(valor),
+        };
+
+      })
+      .filter(Boolean);
+
+        formData.set("valores", JSON.stringify(valoresArray));
+
+        try {
+          const res = await fetch("http://127.0.0.1:8000/api/activos/", {
+            method: "POST",
+            headers: {
+              Authorization: `Token ${token}`,
+            },
+            body: formData,
+          });
+
+          if (!res.ok) {
+            const data = await res.json();
+            setError(data.error || "Error al crear activo");
+            setLoading(false);
+            return;
+          }
+
+          router.push("/activos");
+        } catch (err) {
+          setError("Error de conexión");
+        } finally {
+          setLoading(false);
+        }
+      };
+
+  const selectedTipo = tipos.find((t) => t.id === tipoActivo);
 
   return (
     <div className="p-6 max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">Registrar Nuevo Activo</h1>
+
+      <h1 className="text-2xl font-bold mb-6">Registrar Activo</h1>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-100 text-red-600 rounded">{error}</div>
+        <div className="mb-4 p-3 bg-red-100 text-red-600 rounded">
+          {error}
+        </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
+
         {/* Nombre */}
         <div>
           <label className="block mb-1 font-medium">Nombre *</label>
@@ -153,29 +213,42 @@ export default function CrearActivoPage() {
           />
         </div>
 
+        {/* Imagen */}
+        <div>
+          <label className="block mb-1 font-medium">Imagen *</label>
+          <input
+            type="file"
+            accept="image/*"
+            required
+            onChange={(e) => setImagen(e.target.files?.[0] || null)}
+            className="w-full"
+          />
+        </div>
+
         {/* Descripción */}
         <div>
           <label className="block mb-1 font-medium">Descripción</label>
           <textarea
+            rows={3}
             value={descripcion}
             onChange={(e) => setDescripcion(e.target.value)}
-            rows={3}
             className="w-full border rounded px-3 py-2"
           />
         </div>
 
-        {/* Tipo de Activo */}
+        {/* Tipo */}
         <div>
           <label className="block mb-1 font-medium">Tipo de Activo *</label>
           <select
             value={tipoActivo}
+            required
             onChange={(e) =>
               setTipoActivo(e.target.value ? Number(e.target.value) : "")
             }
-            required
             className="w-full border rounded px-3 py-2"
           >
-            <option value="">-- Seleccionar tipo --</option>
+            <option value="">Seleccionar</option>
+
             {tipos.map((t) => (
               <option key={t.id} value={t.id}>
                 {t.nombre}
@@ -184,35 +257,105 @@ export default function CrearActivoPage() {
           </select>
         </div>
 
-        {/* Características */}
-        {tipoActivo &&
-          tipos
-            .find((t) => t.id === tipoActivo)
-            ?.caracteristicas.map((c) => (
+        {/* Características dinámicas */}
+        {selectedTipo?.caracteristicas.map((c) => {
+
+          if (c.tipo_dato === "numero") {
+            return (
               <div key={c.id}>
-                <label className="block mb-1 font-medium">{c.nombre} *</label>
+                <label className="block mb-1 font-medium">
+                  {c.nombre} {c.obligatorio && "*"}
+                </label>
+
                 <input
-                  type="text"
-                  value={valores[c.id] || ""} // 🔹 corregido
+                  type="number"
+                  required={c.obligatorio}
+                  value={valores[c.id] || ""}
                   onChange={(e) => handleValorChange(c.id, e.target.value)}
-                  required
                   className="w-full border rounded px-3 py-2"
                 />
               </div>
-            ))}
+            );
+          }
+
+          if (c.tipo_dato === "boolean") {
+            return (
+              <div key={c.id} className="flex gap-2 items-center">
+                <input
+                  type="checkbox"
+                  checked={valores[c.id] || false}
+                  onChange={(e) => handleValorChange(c.id, e.target.checked)}
+                />
+                <label>{c.nombre}</label>
+              </div>
+            );
+          }
+
+          if (c.tipo_dato === "fecha") {
+            return (
+              <div key={c.id}>
+                <label>{c.nombre}</label>
+                <input
+                  type="date"
+                  value={valores[c.id] || ""}
+                  required={c.obligatorio}
+                  onChange={(e) => handleValorChange(c.id, e.target.value)}
+                  className="w-full border rounded px-3 py-2"
+                />
+              </div>
+            );
+          }
+
+          if (c.tipo_dato === "select") {
+            return (
+              <div key={c.id}>
+                <label>{c.nombre}</label>
+                <select
+                  value={valores[c.id] || ""}
+                  required={c.obligatorio}
+                  onChange={(e) => handleValorChange(c.id, e.target.value)}
+                  className="w-full border rounded px-3 py-2"
+                >
+                  <option value="">Seleccionar</option>
+
+                  {c.opciones?.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            );
+          }
+
+          return (
+            <div key={c.id}>
+              <label>{c.nombre}</label>
+              <input
+                type="text"
+                required={c.obligatorio}
+                value={valores[c.id] || ""}
+                onChange={(e) => handleValorChange(c.id, e.target.value)}
+                className="w-full border rounded px-3 py-2"
+              />
+            </div>
+          );
+        })}
 
         {/* Área */}
         <div>
           <label className="block mb-1 font-medium">Área *</label>
+
           <select
             value={area}
+            required
             onChange={(e) =>
               setArea(e.target.value ? Number(e.target.value) : "")
             }
-            required
             className="w-full border rounded px-3 py-2"
           >
-            <option value="">-- Seleccionar área --</option>
+            <option value="">Seleccionar</option>
+
             {areas.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.nombre}
@@ -224,6 +367,7 @@ export default function CrearActivoPage() {
         {/* Estado */}
         <div>
           <label className="block mb-1 font-medium">Estado</label>
+
           <select
             value={estado}
             onChange={(e) => setEstado(e.target.value)}
@@ -231,17 +375,18 @@ export default function CrearActivoPage() {
           >
             <option value="disponible">Disponible</option>
             <option value="asignado">Asignado</option>
-            <option value="mantenimiento">En mantenimiento</option>
+            <option value="mantenimiento">Mantenimiento</option>
             <option value="baja">Baja</option>
           </select>
         </div>
 
         {/* Botones */}
-        <div className="flex gap-2 mt-4">
+        <div className="flex gap-2 pt-4">
+
           <button
             type="submit"
             disabled={loading}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            className="bg-blue-600 text-white px-4 py-2 rounded"
           >
             {loading ? "Guardando..." : "Guardar Activo"}
           </button>
@@ -253,7 +398,9 @@ export default function CrearActivoPage() {
           >
             Cancelar
           </button>
+
         </div>
+
       </form>
     </div>
   );

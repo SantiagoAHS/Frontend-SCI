@@ -3,10 +3,23 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
+interface OpcionCaracteristica {
+  id: number;
+  nombre: string;
+}
+
+interface Caracteristica {
+  id: number;
+  nombre: string;
+  tipo_dato: string;
+  obligatorio: boolean;
+  opciones?: OpcionCaracteristica[];
+}
+
 interface TipoActivo {
   id: number;
   nombre: string;
-  activo: boolean;
+  caracteristicas: Caracteristica[];
 }
 
 interface User {
@@ -15,6 +28,7 @@ interface User {
 
 export default function TiposActivoPage() {
   const router = useRouter();
+
   const [tipos, setTipos] = useState<TipoActivo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -23,10 +37,12 @@ export default function TiposActivoPage() {
   // 🔐 Verificar rol admin
   useEffect(() => {
     const user = localStorage.getItem("user");
+
     if (!user) {
       setAuthorized(false);
       return;
     }
+
     const parsed: User = JSON.parse(user);
     setAuthorized(parsed.rol === "admin");
   }, []);
@@ -37,12 +53,17 @@ export default function TiposActivoPage() {
     if (!token) return;
 
     setLoading(true);
+
     try {
       const response = await fetch("http://127.0.0.1:8000/api/tipos-activo/", {
-        headers: { Authorization: `Token ${token}` },
+        headers: {
+          Authorization: `Token ${token}`,
+        },
       });
 
-      if (!response.ok) throw new Error("Error al cargar tipos de activo");
+      if (!response.ok) {
+        throw new Error("Error al cargar tipos de activo");
+      }
 
       const data = await response.json();
       setTipos(data);
@@ -57,7 +78,7 @@ export default function TiposActivoPage() {
     if (authorized) fetchTipos();
   }, [authorized]);
 
-  // 🗑 Eliminar tipo de activo (soft delete)
+  // 🗑 Desactivar tipo de activo
   const handleDelete = async (id: number) => {
     if (!confirm("¿Seguro que deseas desactivar este tipo de activo?")) return;
 
@@ -65,15 +86,21 @@ export default function TiposActivoPage() {
     if (!token) return;
 
     try {
-      const response = await fetch(`http://127.0.0.1:8000/api/tipos-activo/${id}/`, {
-        method: "DELETE",
-        headers: { Authorization: `Token ${token}` },
-      });
+      const response = await fetch(
+        `http://127.0.0.1:8000/api/tipos-activo/${id}/`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Token ${token}`,
+          },
+        }
+      );
 
-      if (!response.ok) throw new Error("Error al desactivar tipo de activo");
+      if (!response.ok) {
+        throw new Error("Error al desactivar tipo de activo");
+      }
 
-      // Actualizar lista local
-      setTipos(tipos.filter((tipo) => tipo.id !== id));
+      setTipos((prev) => prev.filter((tipo) => tipo.id !== id));
     } catch (err: any) {
       alert(err.message);
     }
@@ -94,18 +121,16 @@ export default function TiposActivoPage() {
 
   return (
     <div className="p-6">
+
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Tipos de Activos</h1>
 
-        {/* Botón agregar tipo, solo admin */}
-        {authorized && (
-          <button
-            onClick={() => router.push("/ajustes/tipoactivos/create")}
-            className="bg-black text-white px-4 py-2 rounded hover:bg-gray-800"
-          >
-            + Agregar Tipo de Activo
-          </button>
-        )}
+        <button
+          onClick={() => router.push("/ajustes/tipoactivos/create")}
+          className="bg-black text-white px-4 py-2 rounded hover:bg-gray-800"
+        >
+          + Agregar Tipo de Activo
+        </button>
       </div>
 
       {error && <p className="text-red-600 mb-4">{error}</p>}
@@ -115,32 +140,40 @@ export default function TiposActivoPage() {
       ) : (
         <div className="overflow-x-auto bg-white shadow rounded-lg">
           <table className="min-w-full text-left text-sm">
+
             <thead className="bg-gray-100">
               <tr>
                 <th className="px-4 py-2">ID</th>
                 <th className="px-4 py-2">Nombre</th>
-                <th className="px-4 py-2">Activo</th>
+                <th className="px-4 py-2">Características</th>
                 <th className="px-4 py-2">Acciones</th>
               </tr>
             </thead>
+
             <tbody>
               {tipos.map((tipo) => (
                 <tr key={tipo.id} className="border-t hover:bg-gray-50">
+
                   <td className="px-4 py-2">{tipo.id}</td>
+
                   <td className="px-4 py-2">{tipo.nombre}</td>
-                  <td className="px-4 py-2">{tipo.activo ? "Sí" : "No"}</td>
+
                   <td className="px-4 py-2">
-                    {authorized && (
-                      <button
-                        onClick={() => handleDelete(tipo.id)}
-                        className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
-                      >
-                        Desactivar
-                      </button>
-                    )}
+                    {tipo.caracteristicas?.length || 0}
                   </td>
+
+                  <td className="px-4 py-2">
+                    <button
+                      onClick={() => handleDelete(tipo.id)}
+                      className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+                    >
+                      Desactivar
+                    </button>
+                  </td>
+
                 </tr>
               ))}
+
               {tipos.length === 0 && (
                 <tr>
                   <td colSpan={4} className="px-4 py-2 text-center text-gray-500">
@@ -148,7 +181,9 @@ export default function TiposActivoPage() {
                   </td>
                 </tr>
               )}
+
             </tbody>
+
           </table>
         </div>
       )}
