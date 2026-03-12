@@ -14,15 +14,20 @@ interface Asset {
   area: string;
   estado: string;
   responsables?: string;
-  image?: string;
+  imagen?: string;   // ← viene del backend
 
   valores?: {
     id: number;
     caracteristica: {
       id: number;
       nombre: string;
+      tipo_dato: "text" | "int" | "float" | "boolean" | "select" | "date";
     };
-    valor: string;
+    valor_texto?: string | null;
+    opcion?: {
+      id: number;
+      nombre: string;
+    } | null;
   }[];
 }
 
@@ -71,9 +76,9 @@ export default function ActivosPage() {
 
         const data = await res.json();
         // asignamos una imagen genérica si no viene
-        const activosConImagen = data.map((a: Asset) => ({
+        const activosConImagen = data.map((a: any) => ({
           ...a,
-          image: "/images/default-asset.png",
+          image: a.imagen ? a.imagen : "/images/default-asset.png",
         }));
         setActivos(activosConImagen);
         setFilteredActivos(activosConImagen);
@@ -193,25 +198,25 @@ export default function ActivosPage() {
               <>
                 <span>{activo.descripcion}</span>
 
-                {activo.valores && activo.valores.length > 0 && (
-                  <div className="mt-2 space-y-1 text-sm">
-                    {activo.valores.map((v) => (
-                      <div key={v.id}>
-                        <span className="font-medium">
-                          {v.caracteristica.nombre}:
-                        </span>{" "}
-                        {v.valor}
-                      </div>
-                    ))}
-                  </div>
-                )}
+                  {activo.valores && activo.valores.length > 0 && (
+                    <div className="mt-2 space-y-1 text-sm">
+                      {activo.valores.map((v) => (
+                        <div key={v.id}>
+                          <span className="font-medium">
+                            {v.caracteristica.nombre}:
+                          </span>{" "}
+                          {v.valor_texto || v.opcion?.nombre}
+                        </div>
+                      ))}
+                    </div>
+                  )}
               </>
             }
             type={activo.tipo_activo as AssetType}
             status={activo.estado as AssetStatus}
             responsible={activo.responsables || ""}
             area={activo.area}
-            image={activo.image || "/images/default-asset.png"} // obligatorio
+            image={activo.imagen || "/images/default-asset.png"}
           />
         ))}
 
