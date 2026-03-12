@@ -12,10 +12,11 @@ interface Opcion {
 }
 
 interface Caracteristica {
-  nombre: string;
-  tipo_dato: string;
-  obligatorio: boolean;
-  opciones?: Opcion[];
+  nombre: string
+  tipo_dato: string
+  obligatorio: boolean
+  tamano?: number
+  opciones?: Opcion[]
 }
 
 export default function CreateTipoActivoPage() {
@@ -26,11 +27,12 @@ export default function CreateTipoActivoPage() {
   const [caracteristicas, setCaracteristicas] = useState<Caracteristica[]>([
     {
       nombre: "",
-      tipo_dato: "text",
+      tipo_dato: "texto",
       obligatorio: false,
+      tamano: undefined,
       opciones: [],
     },
-  ]);
+  ])
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -66,12 +68,13 @@ export default function CreateTipoActivoPage() {
       ...caracteristicas,
       {
         nombre: "",
-        tipo_dato: "text",
+        tipo_dato: "texto",
         obligatorio: false,
+        tamano: undefined,
         opciones: [],
       },
-    ]);
-  };
+    ])
+  }
 
   const removeCaracteristica = (index: number) => {
     const updated = [...caracteristicas];
@@ -196,6 +199,7 @@ export default function CreateTipoActivoPage() {
           {caracteristicas.map((c, i) => (
             <div key={i} className="border p-3 rounded mb-3 space-y-3 bg-gray-50">
 
+              {/* Nombre */}
               <input
                 type="text"
                 placeholder="Nombre de la característica"
@@ -207,11 +211,29 @@ export default function CreateTipoActivoPage() {
                 className="w-full border px-3 py-2 rounded"
               />
 
+              {/* Tipo de dato */}
               <select
                 value={c.tipo_dato}
-                onChange={(e) =>
-                  handleCaracteristicaChange(i, "tipo_dato", e.target.value)
-                }
+                onChange={(e) => {
+                  const value = e.target.value
+
+                  const updated = [...caracteristicas]
+
+                  updated[i] = {
+                    ...updated[i],
+                    tipo_dato: value,
+
+                    // limpiar datos que no corresponden
+                    tamano:
+                      value === "text" || value === "int" || value === "float"
+                        ? updated[i].tamano
+                        : undefined,
+
+                    opciones: value === "select" ? updated[i].opciones || [] : [],
+                  }
+
+                  setCaracteristicas(updated)
+                }}
                 className="w-full border px-3 py-2 rounded"
               >
                 <option value="text">Texto</option>
@@ -222,6 +244,32 @@ export default function CreateTipoActivoPage() {
                 <option value="select">Selección</option>
               </select>
 
+              {/* Tamaño solo para texto y números */}
+              {(c.tipo_dato === "text" ||
+                c.tipo_dato === "int" ||
+                c.tipo_dato === "float") && (
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Tamaño máximo
+                  </label>
+
+                  <input
+                    type="number"
+                    placeholder="Ej: 50"
+                    value={c.tamano || ""}
+                    onChange={(e) =>
+                      handleCaracteristicaChange(
+                        i,
+                        "tamano",
+                        Number(e.target.value)
+                      )
+                    }
+                    className="w-full border px-3 py-2 rounded"
+                  />
+                </div>
+              )}
+
+              {/* Obligatorio */}
               <label className="flex items-center gap-2">
                 <input
                   type="checkbox"
@@ -274,6 +322,7 @@ export default function CreateTipoActivoPage() {
                 </div>
               )}
 
+              {/* Eliminar característica */}
               {caracteristicas.length > 1 && (
                 <button
                   type="button"
