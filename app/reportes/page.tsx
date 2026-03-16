@@ -214,6 +214,40 @@ export default function ReportesPage() {
     a.remove()
   }
 
+  const descargarReportePrestamosPDF = async () => {
+
+    const token = localStorage.getItem("token")
+
+    const response = await fetch(
+      "http://127.0.0.1:8000/api/reportes/prestamos/pdf/",
+      {
+        headers: {
+          Authorization: `Token ${token}`,
+        },
+      }
+    )
+
+    if (!response.ok) {
+      alert("Error generando el reporte")
+      return
+    }
+
+    const blob = await response.blob()
+
+    const url = window.URL.createObjectURL(blob)
+
+    const a = document.createElement("a")
+
+    a.href = url
+    a.download = "reporte_prestamos.pdf"
+
+    document.body.appendChild(a)
+
+    a.click()
+
+    a.remove()
+  }
+
   return (
     <div className="flex flex-col gap-6 p-6 lg:p-8">
 
@@ -275,6 +309,10 @@ export default function ReportesPage() {
 
                     if (report.title === "Inventario General") {
                       descargarReporteActivosPDF()
+                    }
+
+                    if (report.title === "Historial de Movimientos") {
+                      descargarReportePrestamosPDF()
                     }
 
                   }}
