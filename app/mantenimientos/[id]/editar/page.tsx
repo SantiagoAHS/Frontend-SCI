@@ -12,6 +12,7 @@ export default function EditarMantenimientoPage() {
   const [responsable, setResponsable] = useState("")
   const [descripcion, setDescripcion] = useState("")
   const [costo, setCosto] = useState("")
+  const [comprobante, setComprobante] = useState<File | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -47,17 +48,19 @@ export default function EditarMantenimientoPage() {
 
     const token = localStorage.getItem("token")
 
+    const formData = new FormData()
+    formData.append("responsable", responsable)
+    formData.append("descripcion_problema", descripcion)
+
+    if (costo) formData.append("costo", costo)
+    if (comprobante) formData.append("comprobante", comprobante)
+
     const res = await fetch(`http://localhost:8000/api/mantenimientos/${id}/editar/`, {
       method: "PATCH",
       headers: {
         Authorization: `Token ${token}`,
-        "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        responsable: responsable,
-        descripcion_problema: descripcion,
-        costo: costo || null,
-      }),
+      body: formData,
     })
 
     if (res.ok) {
@@ -105,6 +108,16 @@ export default function EditarMantenimientoPage() {
             type="number"
             value={costo}
             onChange={(e) => setCosto(e.target.value)}
+            className="w-full border rounded px-3 py-2"
+          />
+        </div>
+
+        <div>
+          <label className="text-sm">Comprobante (PDF)</label>
+          <input
+            type="file"
+            accept="application/pdf"
+            onChange={(e) => setComprobante(e.target.files?.[0] || null)}
             className="w-full border rounded px-3 py-2"
           />
         </div>
