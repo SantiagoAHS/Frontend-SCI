@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { cn } from "@/lib/utils"
 
 interface Activo {
   id: number
@@ -32,7 +31,7 @@ export default function CrearMantenimientoPreventivo() {
       }
 
       try {
-        const res = await fetch("http://localhost:8000/api/activos/list/", {
+        const res = await fetch("http://localhost:8000/api/activos/disponibles/", {
           headers: {
             Authorization: `Token ${token}`,
           },

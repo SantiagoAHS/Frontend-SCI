@@ -61,7 +61,7 @@ export default function CrearPrestamoPage() {
 
       try {
         const [activosRes, areasRes] = await Promise.all([
-          fetch("http://127.0.0.1:8000/api/activos/list/", {
+          fetch("http://127.0.0.1:8000/api/activos/disponibles/", {
             headers: { Authorization: `Token ${token}`, "Content-Type": "application/json" }
           }),
           fetch("http://127.0.0.1:8000/api/areas/list/", {

@@ -57,6 +57,8 @@ export default function ReportesPage() {
 
   const [areas, setAreas] = useState<any[]>([])
   const [areaSeleccionada, setAreaSeleccionada] = useState("")
+  const [fechaInicio, setFechaInicio] = useState("")
+  const [fechaFin, setFechaFin] = useState("")
 
   // 🔹 Cargar áreas
   useEffect(() => {
@@ -119,16 +121,26 @@ export default function ReportesPage() {
   const descargarReportePDF = async () => {
     const token = localStorage.getItem("token")
 
-    const response = await fetch(
-      "http://127.0.0.1:8000/api/reportes/mantenimientos/pdf/",
-      { headers: { Authorization: `Token ${token}` } }
-    )
+    let url = "http://127.0.0.1:8000/api/reportes/mantenimientos/pdf/"
+
+    let params = []
+
+    if (fechaInicio) params.push(`fecha_inicio=${fechaInicio}`)
+    if (fechaFin) params.push(`fecha_fin=${fechaFin}`)
+
+    if (params.length > 0) {
+      url += "?" + params.join("&")
+    }
+
+    const response = await fetch(url, {
+      headers: { Authorization: `Token ${token}` },
+    })
 
     const blob = await response.blob()
-    const url = window.URL.createObjectURL(blob)
+    const fileURL = window.URL.createObjectURL(blob)
 
     const a = document.createElement("a")
-    a.href = url
+    a.href = fileURL
     a.download = "reporte_mantenimientos.pdf"
     document.body.appendChild(a)
     a.click()
@@ -157,16 +169,26 @@ export default function ReportesPage() {
   const descargarReporteActivosPDF = async () => {
     const token = localStorage.getItem("token")
 
-    const response = await fetch(
-      "http://127.0.0.1:8000/api/reportes/activos/pdf/",
-      { headers: { Authorization: `Token ${token}` } }
-    )
+    let url = "http://127.0.0.1:8000/api/reportes/activos/pdf/"
+
+    let params = []
+
+    if (fechaInicio) params.push(`fecha_inicio=${fechaInicio}`)
+    if (fechaFin) params.push(`fecha_fin=${fechaFin}`)
+
+    if (params.length > 0) {
+      url += "?" + params.join("&")
+    }
+
+    const response = await fetch(url, {
+      headers: { Authorization: `Token ${token}` },
+    })
 
     const blob = await response.blob()
-    const url = window.URL.createObjectURL(blob)
+    const fileURL = window.URL.createObjectURL(blob)
 
     const a = document.createElement("a")
-    a.href = url
+    a.href = fileURL
     a.download = "reporte_activos.pdf"
     document.body.appendChild(a)
     a.click()
@@ -195,16 +217,32 @@ export default function ReportesPage() {
   const descargarReportePrestamosPDF = async () => {
     const token = localStorage.getItem("token")
 
-    const response = await fetch(
-      "http://127.0.0.1:8000/api/reportes/prestamos/pdf/",
-      { headers: { Authorization: `Token ${token}` } }
-    )
+    let url = "http://127.0.0.1:8000/api/reportes/prestamos/pdf/"
+
+    // agregar fechas dinámicamente
+    let params = []
+
+    if (fechaInicio) {
+      params.push(`fecha_inicio=${fechaInicio}`)
+    }
+
+    if (fechaFin) {
+      params.push(`fecha_fin=${fechaFin}`)
+    }
+
+    if (params.length > 0) {
+      url += "?" + params.join("&")
+    }
+
+    const response = await fetch(url, {
+      headers: { Authorization: `Token ${token}` },
+    })
 
     const blob = await response.blob()
-    const url = window.URL.createObjectURL(blob)
+    const fileURL = window.URL.createObjectURL(blob)
 
     const a = document.createElement("a")
-    a.href = url
+    a.href = fileURL
     a.download = "reporte_prestamos.pdf"
     document.body.appendChild(a)
     a.click()
@@ -252,8 +290,88 @@ export default function ReportesPage() {
                 </div>
               </div>
 
-              {/* 🔥 LÓGICA POR ÁREA */}
-              {report.title === "Activos por Area" ? (
+                {report.title === "Inventario General" ? (
+
+                  <div className="flex flex-col gap-2">
+
+                    <input
+                      type="date"
+                      value={fechaInicio}
+                      onChange={(e) => setFechaInicio(e.target.value)}
+                      className="h-9 rounded-lg border px-2 text-sm"
+                    />
+
+                    <input
+                      type="date"
+                      value={fechaFin}
+                      onChange={(e) => setFechaFin(e.target.value)}
+                      className="h-9 rounded-lg border px-2 text-sm"
+                    />
+
+                    <button
+                      onClick={descargarReporteActivosPDF}
+                      className="h-9 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700"
+                    >
+                      Generar PDF
+                    </button>
+
+                  </div>
+
+                ) : report.title === "Mantenimientos Realizados" ? (
+
+                  <div className="flex flex-col gap-2">
+
+                    <input
+                      type="date"
+                      value={fechaInicio}
+                      onChange={(e) => setFechaInicio(e.target.value)}
+                      className="h-9 rounded-lg border px-2 text-sm"
+                    />
+
+                    <input
+                      type="date"
+                      value={fechaFin}
+                      onChange={(e) => setFechaFin(e.target.value)}
+                      className="h-9 rounded-lg border px-2 text-sm"
+                    />
+
+                    <button
+                      onClick={descargarReportePDF}
+                      className="h-9 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700"
+                    >
+                      Generar PDF
+                    </button>
+
+                  </div>
+
+                ) : report.title === "Historial de Movimientos" ? (
+
+                  <div className="flex flex-col gap-2">
+
+                    <input
+                      type="date"
+                      value={fechaInicio}
+                      onChange={(e) => setFechaInicio(e.target.value)}
+                      className="h-9 rounded-lg border px-2 text-sm"
+                    />
+
+                    <input
+                      type="date"
+                      value={fechaFin}
+                      onChange={(e) => setFechaFin(e.target.value)}
+                      className="h-9 rounded-lg border px-2 text-sm"
+                    />
+
+                    <button
+                      onClick={descargarReportePrestamosPDF}
+                      className="h-9 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700"
+                    >
+                      Generar PDF
+                    </button>
+
+                  </div>
+
+                ) : report.title === "Activos por Area" ? (
 
                 <div className="flex flex-col gap-2">
 
