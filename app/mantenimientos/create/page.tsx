@@ -1,5 +1,6 @@
 "use client"
 
+import { API_URL } from "@/config/api"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 
@@ -31,7 +32,7 @@ export default function CrearMantenimientoPreventivo() {
       }
 
       try {
-        const res = await fetch("http://localhost:8000/api/activos/disponibles/", {
+        const res = await fetch(`${API_URL}/activos/disponibles/`, {
           headers: {
             Authorization: `Token ${token}`,
           },
@@ -74,7 +75,7 @@ export default function CrearMantenimientoPreventivo() {
     }
 
     try {
-      const res = await fetch("http://localhost:8000/api/preventivo/", {
+      const res = await fetch(`${API_URL}/preventivo/`, {
         method: "POST",
         headers: {
           Authorization: `Token ${token}`,

@@ -1,5 +1,6 @@
 "use client"
 
+import { API_URL } from "@/config/api"
 import { useEffect, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
 
@@ -19,7 +20,7 @@ export default function EditUserPage() {
     cargo: "",
   })
 
-  // 🔐 VALIDACIÓN CORRECTA DE ADMIN
+  // VALIDACIÓN CORRECTA DE ADMIN
   useEffect(() => {
     const storedUser = localStorage.getItem("user")
 
@@ -40,13 +41,12 @@ export default function EditUserPage() {
     }
   }, [])
 
-  // 👉 Obtener datos del usuario
+  // Obtener datos del usuario
   const fetchUser = async () => {
     const token = localStorage.getItem("token")
 
     try {
-      const response = await fetch(
-        "http://127.0.0.1:8000/api/users/",
+      const response = await fetch(`${API_URL}/users/`,
         {
           headers: {
             Authorization: `Token ${token}`,
@@ -84,15 +84,13 @@ export default function EditUserPage() {
     })
   }
 
-  // ✅ AHORA SÍ usa tu endpoint real
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     const token = localStorage.getItem("token")
 
     try {
-      const response = await fetch(
-        `http://127.0.0.1:8000/api/users/${id}/update/`,
+      const response = await fetch(`${API_URL}/users/${id}/update/`,
         {
           method: "PUT",
           headers: {

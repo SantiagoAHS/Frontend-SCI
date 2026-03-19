@@ -1,5 +1,6 @@
 "use client"
 
+import { API_URL } from "@/config/api"
 import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
 
@@ -14,7 +15,7 @@ export default function VerMantenimiento() {
 
       const token = localStorage.getItem("token")
 
-      const res = await fetch("http://localhost:8000/api/mantenimientos/list/", {
+      const res = await fetch(`${API_URL}/mantenimientos/list/`, {
         headers: {
           Authorization: `Token ${token}`,
         },

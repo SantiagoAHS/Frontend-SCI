@@ -1,6 +1,8 @@
+import { API_URL } from "@/config/api"
+
 async function getActivo(id: string) {
 
-  const res = await fetch(`http://127.0.0.1:8000/api/activos/${id}/`, {
+  const res = await fetch(`${API_URL}/activos/${id}/`, {
     cache: "no-store"
   })
 

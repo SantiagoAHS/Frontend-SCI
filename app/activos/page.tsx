@@ -1,5 +1,6 @@
 "use client";
 
+import { API_URL } from "@/config/api"
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Package, Plus, Search } from "lucide-react";
@@ -62,7 +63,7 @@ export default function ActivosPage() {
       }
 
       try {
-        const res = await fetch("http://127.0.0.1:8000/api/activos/list/", {
+        const res = await fetch(`${API_URL}/activos/list/`, {
           headers: {
             Authorization: `Token ${token}`,
             "Content-Type": "application/json",

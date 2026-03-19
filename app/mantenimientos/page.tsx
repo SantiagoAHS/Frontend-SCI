@@ -1,5 +1,6 @@
 "use client"
 
+import { API_URL } from "@/config/api"
 import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 import { Wrench, Plus, Search } from "lucide-react"
@@ -60,7 +61,7 @@ export default function MantenimientosPage() {
       }
 
       try {
-        const res = await fetch("http://localhost:8000/api/mantenimientos/list/", {
+        const res = await fetch(`${API_URL}/mantenimientos/list/`, {
           headers: {
             Authorization: `Token ${token}`,
             "Content-Type": "application/json",
@@ -94,7 +95,7 @@ export default function MantenimientosPage() {
     }
 
     try {
-      const res = await fetch("http://localhost:8000/api/generar-preventivos/", {
+      const res = await fetch(`${API_URL}/generar-preventivos/`, {
         method: "POST",
         headers: {
           Authorization: `Token ${token}`,
@@ -124,7 +125,7 @@ export default function MantenimientosPage() {
   const token = localStorage.getItem("token")
 
     try {
-      const res = await fetch(`http://localhost:8000/api/mantenimientos/${id}/estado/`, {
+      const res = await fetch(`${API_URL}/mantenimientos/${id}/estado/`, {
         method: "PATCH",
         headers: {
           Authorization: `Token ${token}`,

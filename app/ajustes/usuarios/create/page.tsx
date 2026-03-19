@@ -1,5 +1,6 @@
 "use client"
 
+import { API_URL } from "@/config/api"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 
@@ -16,7 +17,7 @@ export default function CreateUserPage() {
   const [loading, setLoading] = useState(false)
   const [authorized, setAuthorized] = useState<boolean | null>(null)
 
-  // 🔐 Verificación de acceso
+  // Verificación de acceso
   useEffect(() => {
     const user = localStorage.getItem("user")
 
@@ -42,7 +43,7 @@ export default function CreateUserPage() {
     const token = localStorage.getItem("token")
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/register/", {
+      const response = await fetch(`${API_URL}/register/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -78,12 +79,12 @@ export default function CreateUserPage() {
     }
   }
 
-  // 🔒 Mientras verifica
+  // Mientras verifica
   if (authorized === null) {
     return <div className="p-6">Verificando permisos...</div>
   }
 
-  // ❌ Si no es admin
+  // Si no es admin
   if (!authorized) {
     return (
       <div className="p-6">
@@ -95,7 +96,7 @@ export default function CreateUserPage() {
     )
   }
 
-  // ✅ Si es admin
+  // Si es admin
   return (
     <div className="p-6 max-w-lg">
       <h1 className="text-2xl font-bold mb-6">Crear Usuario</h1>
@@ -147,7 +148,7 @@ export default function CreateUserPage() {
             className="w-full border px-3 py-2 rounded"
           >
             <option value="admin">Admin</option>
-            <option value="operador">Operador</option>
+            <option value="operativo">Operador</option>
             <option value="auditor">Auditor</option>
           </select>
         </div>

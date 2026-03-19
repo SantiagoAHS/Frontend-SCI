@@ -1,5 +1,6 @@
 "use client"
 
+import { API_URL } from "@/config/api"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 
@@ -19,7 +20,7 @@ export default function UsuariosPage() {
 
   const router = useRouter()
 
-  // 🔐 Verificar rol antes de mostrar nada
+  // Verificar rol antes de mostrar nada
   useEffect(() => {
     const user = localStorage.getItem("user")
 
@@ -41,7 +42,7 @@ export default function UsuariosPage() {
     const token = localStorage.getItem("token")
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/users/", {
+      const response = await fetch(`${API_URL}/users/`, {
         headers: {
           Authorization: `Token ${token}`,
         },
@@ -76,8 +77,7 @@ export default function UsuariosPage() {
     if (!confirm("¿Seguro que deseas eliminar este usuario?")) return
 
     try {
-      const response = await fetch(
-        `http://127.0.0.1:8000/api/users/${id}/delete/`,
+      const response = await fetch(`${API_URL}/users/${id}/delete/`,
         {
           method: "DELETE",
           headers: {
@@ -99,12 +99,12 @@ export default function UsuariosPage() {
     }
   }
 
-  // ⏳ Mientras verifica permisos
+  // Mientras verifica permisos
   if (authorized === null) {
     return <div className="p-6">Verificando permisos...</div>
   }
 
-  // ❌ Si no es admin
+  // Si no es admin
   if (!authorized) {
     return (
       <div className="p-6">
@@ -118,7 +118,7 @@ export default function UsuariosPage() {
     )
   }
 
-  // ✅ Si es admin
+  // Si es admin
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">

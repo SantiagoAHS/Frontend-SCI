@@ -1,5 +1,6 @@
 "use client";
 
+import { API_URL } from "@/config/api"
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 
@@ -23,7 +24,7 @@ export default function EditAreaPage() {
   const [error, setError] = useState("");
   const [authorized, setAuthorized] = useState<boolean | null>(null);
 
-  // 🔐 Verificar rol admin
+  // Verificar rol admin
   useEffect(() => {
     const user = localStorage.getItem("user");
     if (!user) {
@@ -34,7 +35,7 @@ export default function EditAreaPage() {
     setAuthorized(parsed.rol === "admin");
   }, []);
 
-  // 📥 Cargar datos del área y usuarios solo si es admin
+  // Cargar datos del área y usuarios solo si es admin
   useEffect(() => {
     if (!authorized || !id) return;
 
@@ -45,7 +46,7 @@ export default function EditAreaPage() {
       setLoading(true);
       try {
         // Área
-        const areaRes = await fetch(`http://127.0.0.1:8000/api/areas/${id}/`, {
+        const areaRes = await fetch(`${API_URL}/areas/${id}/`, {
           headers: { Authorization: `Token ${token}` },
         });
         if (!areaRes.ok) throw new Error("Error al cargar el área");
@@ -55,7 +56,7 @@ export default function EditAreaPage() {
         setResponsable(areaData.responsable || "");
 
         // Usuarios
-        const usersRes = await fetch("http://127.0.0.1:8000/api/users/", {
+        const usersRes = await fetch(`${API_URL}/users/`, {
           headers: { Authorization: `Token ${token}` },
         });
         if (!usersRes.ok) throw new Error("Error al cargar usuarios");
@@ -84,7 +85,7 @@ export default function EditAreaPage() {
     }
 
     try {
-      const response = await fetch(`http://127.0.0.1:8000/api/areas/${id}/`, {
+      const response = await fetch(`${API_URL}/areas/${id}/`, {
         method: "PUT",
         headers: {
           Authorization: `Token ${token}`,
@@ -110,12 +111,12 @@ export default function EditAreaPage() {
     }
   };
 
-  // ⏳ Verificando permisos
+  // Verificando permisos
   if (authorized === null) {
     return <div className="p-6">Verificando permisos...</div>;
   }
 
-  // ❌ No es admin
+  // No es admin
   if (!authorized) {
     return (
       <div className="p-6">
@@ -127,7 +128,7 @@ export default function EditAreaPage() {
     );
   }
 
-  // ✅ Admin → mostrar formulario
+  // Admin → mostrar formulario
   return (
     <div className="p-6 max-w-xl">
       <h1 className="text-2xl font-bold mb-6">Editar Área</h1>

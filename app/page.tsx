@@ -1,5 +1,6 @@
 "use client"
 
+import { API_URL } from "@/config/api"
 import { useEffect, useState } from "react"
 import { StatCard } from "@/components/stat-card"
 import { StatusBadge, type AssetStatus } from "@/components/status-badge"
@@ -41,7 +42,7 @@ export default function DashboardPage() {
       const token = localStorage.getItem("token")
 
       try {
-        const res = await fetch("http://127.0.0.1:8000/api/dashboard/stats/", {
+        const res = await fetch(`${API_URL}/dashboard/stats/`, {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Token ${token}`,

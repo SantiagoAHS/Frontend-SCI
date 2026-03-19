@@ -1,5 +1,6 @@
 "use client"
 
+import { API_URL } from "@/config/api"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 
@@ -46,8 +47,7 @@ export default function AreasPage() {
     const token = localStorage.getItem("token")
 
     try {
-      const response = await fetch(
-        "http://127.0.0.1:8000/api/areas/list/?activas=false",
+      const response = await fetch(`${API_URL}/areas/list/?activas=false`,
         {
           headers: {
             Authorization: `Token ${token}`,
@@ -80,8 +80,7 @@ export default function AreasPage() {
     if (!confirm("¿Seguro que deseas desactivar esta área?")) return
 
     try {
-      const response = await fetch(
-        `http://127.0.0.1:8000/api/areas/${id}/delete/`,
+      const response = await fetch(`${API_URL}/areas/${id}/delete/`,
         {
           method: "DELETE",
           headers: {

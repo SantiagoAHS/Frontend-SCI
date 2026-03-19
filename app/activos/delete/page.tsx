@@ -1,5 +1,6 @@
 "use client";
 
+import { API_URL } from "@/config/api"
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { 
@@ -12,7 +13,7 @@ import {
   X,
   AlertCircle
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+
 
 interface Asset {
   id: number;
@@ -44,7 +45,7 @@ export default function DeleteActivosPage() {
       }
 
       try {
-        const res = await fetch("http://127.0.0.1:8000/api/activos/list/", {
+        const res = await fetch(`${API_URL}/activos/list/`, {
           headers: { Authorization: `Token ${token}` },
         });
         if (!res.ok) throw new Error("Error al cargar activos");
@@ -74,7 +75,7 @@ export default function DeleteActivosPage() {
     setIsDeleting(true);
 
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/activos/${assetToDelete.id}/delete/`, {
+      const res = await fetch(`${API_URL}/activos/${assetToDelete.id}/delete/`, {
         method: "DELETE",
         headers: { Authorization: `Token ${token}` },
       });

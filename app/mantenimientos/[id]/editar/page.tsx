@@ -1,5 +1,6 @@
 "use client"
 
+import { API_URL } from "@/config/api"
 import { useEffect, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
 
@@ -20,7 +21,7 @@ export default function EditarMantenimientoPage() {
 
       const token = localStorage.getItem("token")
 
-      const res = await fetch(`http://localhost:8000/api/mantenimientos/list/`, {
+      const res = await fetch(`${API_URL}/mantenimientos/list/`, {
         headers: {
           Authorization: `Token ${token}`,
         },
@@ -55,7 +56,7 @@ export default function EditarMantenimientoPage() {
     if (costo) formData.append("costo", costo)
     if (comprobante) formData.append("comprobante", comprobante)
 
-    const res = await fetch(`http://localhost:8000/api/mantenimientos/${id}/editar/`, {
+    const res = await fetch(`${API_URL}/mantenimientos/${id}/editar/`, {
       method: "PATCH",
       headers: {
         Authorization: `Token ${token}`,

@@ -1,5 +1,6 @@
 "use client"
 
+import { API_URL } from "@/config/api"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState, useEffect } from "react"
@@ -82,17 +83,17 @@ export function AppSidebar() {
 
   const [openPalette, setOpenPalette] = useState(false)
 
-  // 🔥 NUEVO: estado de usuario
+  // NUEVO: estado de usuario
   const [user, setUser] = useState<any>(null)
   const [openProfile, setOpenProfile] = useState(false)
 
-  // 🔥 Detectar sesión
+  // Detectar sesión
   useEffect(() => {
 
     const token = localStorage.getItem("token")
 
     if (token) {
-      fetch("http://127.0.0.1:8000/api/perfil/", {
+      fetch(`${API_URL}/perfil/`, {
         headers: {
           Authorization: `Token ${token}`,
         },
@@ -118,7 +119,7 @@ export function AppSidebar() {
     <>
       <aside className="sticky top-0 flex h-screen w-16 flex-col items-center border-r border-border bg-card py-6">
 
-        {/* 🔥 BOTÓN PERFIL */}
+        {/* BOTÓN PERFIL */}
         <button
           onClick={() => {
             if (user) {
@@ -206,7 +207,7 @@ export function AppSidebar() {
         </nav>
       </aside>
 
-      {/* 🔥 MODAL PERFIL */}
+      {/* MODAL PERFIL */}
       {openProfile && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { API_URL } from "@/config/api"
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { 
@@ -17,7 +18,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
+
 
 interface User {
   rol: string;
@@ -114,7 +115,7 @@ export default function CreateTipoActivoPage() {
     setLoading(true);
     const token = localStorage.getItem("token");
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/tipos-activo/", {
+      const res = await fetch(`${API_URL}/tipos-activo/`, {
         method: "POST",
         headers: { Authorization: `Token ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({

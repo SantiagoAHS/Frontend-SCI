@@ -1,5 +1,6 @@
 "use client"
 
+import { API_URL } from "@/config/api"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 
@@ -20,7 +21,7 @@ export default function CreateAreaPage() {
 
   const router = useRouter()
 
-  // 🔐 Verificar que sea admin
+  // Verificar que sea admin
   useEffect(() => {
     const user = localStorage.getItem("user")
 
@@ -38,13 +39,12 @@ export default function CreateAreaPage() {
     }
   }, [])
 
-  // 📥 Cargar usuarios para select responsable
+  // Cargar usuarios para select responsable
   const fetchUsers = async () => {
     const token = localStorage.getItem("token")
 
     try {
-      const response = await fetch(
-        "http://127.0.0.1:8000/api/users/",
+      const response = await fetch(`${API_URL}/users/`,
         {
           headers: {
             Authorization: `Token ${token}`,
@@ -76,8 +76,7 @@ export default function CreateAreaPage() {
     setError("")
 
     try {
-      const response = await fetch(
-        "http://127.0.0.1:8000/api/areas/",
+      const response = await fetch(`${API_URL}/areas/`,
         {
           method: "POST",
           headers: {

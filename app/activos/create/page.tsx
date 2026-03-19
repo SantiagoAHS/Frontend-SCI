@@ -1,5 +1,6 @@
 "use client";
 
+import { API_URL } from "@/config/api"
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { 
@@ -37,8 +38,8 @@ export default function CrearActivoPage() {
     const fetchData = async () => {
       try {
         const [tiposRes, areasRes] = await Promise.all([
-          fetch("http://127.0.0.1:8000/api/tipos-activo/", { headers: { Authorization: `Token ${token}` } }),
-          fetch("http://127.0.0.1:8000/api/areas/list/?activas=true", { headers: { Authorization: `Token ${token}` } })
+          fetch(`${API_URL}/tipos-activo/`, { headers: { Authorization: `Token ${token}` } }),
+          fetch(`${API_URL}/areas/list/?activas=true`, { headers: { Authorization: `Token ${token}` } })
         ]);
         setTipos(await tiposRes.json());
         setAreas(await areasRes.json());
@@ -107,7 +108,7 @@ export default function CrearActivoPage() {
     formData.set("valores", JSON.stringify(valoresArray));
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/activos/", {
+      const res = await fetch(`${API_URL}/activos/`, {
         method: "POST",
         headers: { Authorization: `Token ${token}` },
         body: formData,

@@ -1,5 +1,6 @@
 "use client"
 
+import { API_URL } from "@/config/api"
 import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 import { ArrowRightLeft, Search, Plus, Bell } from "lucide-react"
@@ -51,7 +52,7 @@ export default function AsignacionesPage() {
 
       try {
 
-        const res = await fetch("http://127.0.0.1:8000/api/prestamos/list/", {
+        const res = await fetch(`${API_URL}/prestamos/list/`, {
           headers: {
             Authorization: `Token ${token}`,
             "Content-Type": "application/json",
@@ -94,7 +95,7 @@ export default function AsignacionesPage() {
 
       try {
 
-        const res = await fetch("http://127.0.0.1:8000/api/prestamos/notificaciones/", {
+        const res = await fetch(`${API_URL}/prestamos/notificaciones/`, {
           headers: {
             Authorization: `Token ${token}`,
           },
@@ -135,7 +136,7 @@ export default function AsignacionesPage() {
 
     try {
 
-      const res = await fetch(`http://127.0.0.1:8000/api/prestamos/${id}/finalizar/`, {
+      const res = await fetch(`${API_URL}/prestamos/${id}/finalizar/`, {
         method: "PATCH",
         headers: {
           Authorization: `Token ${token}`,

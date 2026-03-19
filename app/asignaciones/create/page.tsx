@@ -1,5 +1,6 @@
 "use client"
 
+import { API_URL } from "@/config/api"
 import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 import { 
@@ -61,10 +62,10 @@ export default function CrearPrestamoPage() {
 
       try {
         const [activosRes, areasRes] = await Promise.all([
-          fetch("http://127.0.0.1:8000/api/activos/disponibles/", {
+          fetch(`${API_URL}/activos/disponibles/`, {
             headers: { Authorization: `Token ${token}`, "Content-Type": "application/json" }
           }),
-          fetch("http://127.0.0.1:8000/api/areas/list/", {
+          fetch(`${API_URL}/areas/list/`, {
             headers: { Authorization: `Token ${token}`, "Content-Type": "application/json" }
           })
         ])
@@ -104,7 +105,7 @@ export default function CrearPrestamoPage() {
         observaciones: form.observaciones
       }
 
-      const res = await fetch("http://127.0.0.1:8000/api/prestamo/", {
+      const res = await fetch(`${API_URL}/prestamo/`, {
         method: "POST",
         headers: {
           Authorization: `Token ${token}`,

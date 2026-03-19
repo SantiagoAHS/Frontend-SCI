@@ -1,5 +1,6 @@
 "use client"
 
+import { API_URL } from "@/config/api"
 import {
   FileBarChart,
   Package,
@@ -67,7 +68,7 @@ export default function ReportesPage() {
 
       const token = localStorage.getItem("token")
 
-      const res = await fetch("http://127.0.0.1:8000/api/areas/list/", {
+      const res = await fetch(`${API_URL}/areas/list/`, {
         headers: {
           Authorization: `Token ${token}`,
         },
@@ -91,8 +92,7 @@ export default function ReportesPage() {
 
     const token = localStorage.getItem("token")
 
-    const response = await fetch(
-      `http://127.0.0.1:8000/api/reporte/activos/area/${areaSeleccionada}/`,
+    const response = await fetch(`${API_URL}/reporte/activos/area/${areaSeleccionada}/`,
       {
         headers: {
           Authorization: `Token ${token}`,
@@ -121,7 +121,7 @@ export default function ReportesPage() {
   const descargarReportePDF = async () => {
     const token = localStorage.getItem("token")
 
-    let url = "http://127.0.0.1:8000/api/reportes/mantenimientos/pdf/"
+    let url = `${API_URL}/reportes/mantenimientos/pdf/`
 
     let params = []
 
@@ -150,8 +150,7 @@ export default function ReportesPage() {
   const descargarReporteMantenimientos = async () => {
     const token = localStorage.getItem("token")
 
-    const response = await fetch(
-      "http://127.0.0.1:8000/api/reportes/mantenimientos/excel/",
+    const response = await fetch(`${API_URL}/reportes/mantenimientos/excel/`,
       { headers: { Authorization: `Token ${token}` } }
     )
 
@@ -169,7 +168,7 @@ export default function ReportesPage() {
   const descargarReporteActivosPDF = async () => {
     const token = localStorage.getItem("token")
 
-    let url = "http://127.0.0.1:8000/api/reportes/activos/pdf/"
+    let url = `${API_URL}/reportes/activos/pdf/`
 
     let params = []
 
@@ -198,8 +197,7 @@ export default function ReportesPage() {
   const descargarReporteActivosExcel = async () => {
     const token = localStorage.getItem("token")
 
-    const response = await fetch(
-      "http://127.0.0.1:8000/api/reportes/activos/excel/",
+    const response = await fetch(`${API_URL}/reportes/activos/excel/`,
       { headers: { Authorization: `Token ${token}` } }
     )
 
@@ -217,7 +215,7 @@ export default function ReportesPage() {
   const descargarReportePrestamosPDF = async () => {
     const token = localStorage.getItem("token")
 
-    let url = "http://127.0.0.1:8000/api/reportes/prestamos/pdf/"
+    let url = `${API_URL}/reportes/prestamos/pdf/`
 
     // agregar fechas dinámicamente
     let params = []

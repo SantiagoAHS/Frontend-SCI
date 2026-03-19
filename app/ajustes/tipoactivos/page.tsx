@@ -1,5 +1,6 @@
 "use client";
 
+import { API_URL } from "@/config/api"
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Settings2, Plus, Search, Trash2, ListTree, ShieldAlert } from "lucide-react";
@@ -37,7 +38,7 @@ export default function TiposActivoPage() {
   const [search, setSearch] = useState("");
   const [authorized, setAuthorized] = useState<boolean | null>(null);
 
-  // 🔐 Verificar rol admin
+  // Verificar rol admin
   useEffect(() => {
     const user = localStorage.getItem("user");
     if (!user) {
@@ -48,14 +49,14 @@ export default function TiposActivoPage() {
     setAuthorized(parsed.rol === "admin");
   }, []);
 
-  // 📥 Cargar tipos de activos
+  // Cargar tipos de activos
   const fetchTipos = async () => {
     const token = localStorage.getItem("token");
     if (!token) return;
 
     setLoading(true);
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/tipos-activo/", {
+      const response = await fetch(`${API_URL}/tipos-activo/`, {
         headers: {
           Authorization: `Token ${token}`,
           "Content-Type": "application/json",
@@ -78,7 +79,7 @@ export default function TiposActivoPage() {
     if (authorized) fetchTipos();
   }, [authorized]);
 
-  // 🔍 Lógica de búsqueda
+  // Lógica de búsqueda
   useEffect(() => {
     const filtered = tipos.filter((t) =>
       t.nombre.toLowerCase().includes(search.toLowerCase())
@@ -92,7 +93,7 @@ export default function TiposActivoPage() {
     if (!token) return;
 
     try {
-      const response = await fetch(`http://127.0.0.1:8000/api/tipos-activo/${id}/`, {
+      const response = await fetch(`${API_URL}/tipos-activo/${id}/`, {
         method: "DELETE",
         headers: { Authorization: `Token ${token}` },
       });
