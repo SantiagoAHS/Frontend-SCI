@@ -2,52 +2,81 @@
 
 import { useEffect, useState } from "react"
 
-export default function UsuariosPage() {
-  const [data, setData] = useState<any>(null)
-  const [error, setError] = useState<string | null>(null)
+export default function AuditoriaPage() {
+
+  const [auditoria, setAuditoria] = useState(null)
 
   useEffect(() => {
-    const fetchStats = async () => {
+
+    const fetchAuditoria = async () => {
       const token = localStorage.getItem("token")
 
       try {
-        const response = await fetch("http://127.0.0.1:8000/api/dashboard/stats/", {
+        const res = await fetch("http://localhost:8000/api/auditoria/3/", {
           headers: {
-            "Content-Type": "application/json",
             Authorization: `Token ${token}`,
           },
         })
 
-        if (!response.ok) {
-          throw new Error(`Error ${response.status}`)
+        if (!res.ok) {
+          console.log("Error:", res.status)
+          return
         }
 
-        const result = await response.json()
-        setData(result)
+        const data = await res.json()
+        console.log("DATA:", data) // DEBUG
+        setAuditoria(data)
 
-      } catch (err: any) {
-        setError(err.message)
+      } catch (error) {
+        console.error(error)
       }
     }
 
-    fetchStats()
+    fetchAuditoria()
+
   }, [])
 
+  if (!auditoria) return <p>Cargando...</p>
+
+  // 🔹 Función para mostrar estado visual
+  const getEstadoVisual = (item) => {
+    if (!item.estado_real) return { text: "🟡 Pendiente", color: "orange" }
+    if (item.resultado === "correcto") return { text: "🟢 Correcto", color: "green" }
+    return { text: "🔴 Incorrecto", color: "red" }
+  }
+
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold">Prueba API Dashboard</h1>
+    <div style={{ padding: 20 }}>
+      <h1>{auditoria.nombre}</h1>
 
-      {error && (
-        <p className="text-red-500 mt-4">
-          Error: {error}
-        </p>
-      )}
+      {auditoria.detalles?.map((item) => {
+        const estado = getEstadoVisual(item)
 
-      {data && (
-        <pre className="mt-4 bg-gray-100 p-4 rounded">
-          {JSON.stringify(data, null, 2)}
-        </pre>
-      )}
+        return (
+          <div
+            key={item.id}
+            style={{
+              border: "1px solid #ccc",
+              borderRadius: 10,
+              padding: 15,
+              marginBottom: 10
+            }}
+          >
+            <h3>{item.activo_nombre}</h3>
+
+            <p><b>Estado sistema:</b> {item.estado_sistema || "Sin dato"}</p>
+            <p><b>Área sistema:</b> {item.area_sistema || "Sin dato"}</p>
+
+            <p style={{ color: estado.color }}>
+              <b>Resultado:</b> {estado.text}
+            </p>
+
+            {item.observaciones && (
+              <p><b>Observaciones:</b> {item.observaciones}</p>
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }
