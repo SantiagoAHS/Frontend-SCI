@@ -36,6 +36,36 @@ export default function AuditoriasPage() {
     }
   }
 
+  const handleDescargarPDF = async (id) => {
+    const token = localStorage.getItem("token")
+
+    try {
+      const res = await fetch(`http://localhost:8000/api/auditoria/${id}/pdf/`, {
+        headers: {
+          Authorization: `Token ${token}`,
+        },
+      })
+
+      if (!res.ok) {
+        alert("Error al generar PDF")
+        return
+      }
+
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `auditoria_${id}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+
+    } catch (error) {
+      console.error("Error descargar PDF:", error)
+    }
+  }
+
   // 🔹 Obtener áreas
   const fetchAreas = async () => {
     const token = localStorage.getItem("token")
@@ -189,16 +219,29 @@ export default function AuditoriasPage() {
           <p className="text-gray-500">No hay auditorías aún</p>
         ) : (
           auditorias.map((auditoria) => (
-            <div
-              key={auditoria.id}
-              onClick={() => window.location.href = `/auditorias/${auditoria.id}`}
-              className="cursor-pointer rounded-lg border p-4 hover:bg-gray-50 transition"
-            >
+              <div
+                key={auditoria.id}
+                onClick={() => window.location.href = `/auditorias/${auditoria.id}`}
+                className="cursor-pointer rounded-lg border p-4 hover:bg-gray-50 transition flex justify-between items-center"
+              >
               <h3 className="font-semibold">{auditoria.nombre}</h3>
               <p className="text-sm text-gray-500">Estado: {auditoria.estado}</p>
               <p className="text-xs text-gray-400">
                 {new Date(auditoria.fecha_inicio).toLocaleString()}
               </p>
+              <div className="flex items-center gap-2">
+                {auditoria.estado === "finalizada" && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation() // 🔥 evita que abra la auditoría
+                      handleDescargarPDF(auditoria.id)
+                    }}
+                    className="px-3 py-1 text-xs rounded bg-blue-600 text-white hover:bg-blue-700"
+                  >
+                    Descargar PDF
+                  </button>
+                )}
+              </div>
             </div>
           ))
         )}
