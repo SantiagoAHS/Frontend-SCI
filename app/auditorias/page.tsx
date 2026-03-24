@@ -7,10 +7,16 @@ export default function AuditoriasPage() {
 
   const [loading, setLoading] = useState(false)
   const [loadingArea, setLoadingArea] = useState(false)
+  const [loadingTipo, setLoadingTipo] = useState(false)
+
   const [auditorias, setAuditorias] = useState([])
   const [areas, setAreas] = useState([])
+
   const [showModal, setShowModal] = useState(false)
+  const [showModalTipo, setShowModalTipo] = useState(false)
+
   const [selectedArea, setSelectedArea] = useState("")
+  const [tipoSeleccionado, setTipoSeleccionado] = useState("") // mantenimiento | prestamo
 
   // 🔹 Obtener auditorías
   const fetchAuditorias = async () => {
@@ -30,7 +36,7 @@ export default function AuditoriasPage() {
     }
   }
 
-  // 🔹 Obtener áreas para auditoría por área
+  // 🔹 Obtener áreas
   const fetchAreas = async () => {
     const token = localStorage.getItem("token")
     try {
@@ -50,7 +56,7 @@ export default function AuditoriasPage() {
     fetchAreas()
   }, [])
 
-  // 🔹 Crear auditoría general
+  // 🔹 Auditoría general
   const handleCrearAuditoria = async () => {
     const token = localStorage.getItem("token")
     setLoading(true)
@@ -70,7 +76,7 @@ export default function AuditoriasPage() {
     }
   }
 
-  // 🔹 Crear auditoría por área
+  // 🔹 Auditoría por área
   const handleCrearAuditoriaArea = async () => {
     if (!selectedArea) return alert("Selecciona un área primero")
     const token = localStorage.getItem("token")
@@ -97,6 +103,38 @@ export default function AuditoriasPage() {
     }
   }
 
+  // 🔹 Auditoría por tipo (NUEVO)
+  const handleCrearAuditoriaTipo = async () => {
+    if (!tipoSeleccionado) return alert("Selecciona el tipo")
+
+    const token = localStorage.getItem("token")
+    setLoadingTipo(true)
+
+    try {
+      const res = await fetch("http://localhost:8000/api/auditoria/iniciar/tipo/", {
+        method: "POST",
+        headers: {
+          Authorization: `Token ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ tipo: tipoSeleccionado })
+      })
+
+      if (!res.ok) { setLoadingTipo(false); return }
+
+      const data = await res.json()
+      fetchAuditorias()
+      setShowModalTipo(false)
+      setTipoSeleccionado("")
+
+      window.location.href = `/auditorias/${data.auditoria_id}`
+    } catch (error) {
+      console.error("Error auditoría tipo:", error)
+    } finally {
+      setLoadingTipo(false)
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6 p-6 lg:p-8">
 
@@ -113,6 +151,7 @@ export default function AuditoriasPage() {
         </div>
 
         <div className="flex gap-2">
+
           {/* Auditoría general */}
           <button
             onClick={handleCrearAuditoria}
@@ -131,10 +170,20 @@ export default function AuditoriasPage() {
             <MapPin className="h-4 w-4" />
             Auditoría por Área
           </button>
+
+          {/* 🔥 NUEVO: Auditoría por tipo */}
+          <button
+            onClick={() => setShowModalTipo(true)}
+            className="inline-flex h-9 items-center gap-2 rounded-lg bg-orange-600 px-4 text-sm font-medium text-white hover:bg-orange-700"
+          >
+            <Plus className="h-4 w-4" />
+            Auditoría por Tipo
+          </button>
+
         </div>
       </header>
 
-      {/* Lista de auditorías */}
+      {/* Lista */}
       <div className="flex flex-col gap-3">
         {auditorias.length === 0 ? (
           <p className="text-gray-500">No hay auditorías aún</p>
@@ -155,11 +204,12 @@ export default function AuditoriasPage() {
         )}
       </div>
 
-      {/* Modal para auditoría por área */}
+      {/* Modal área (YA TENÍAS) */}
       {showModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
           <div className="bg-white p-6 rounded-lg w-80">
             <h2 className="text-lg font-semibold mb-4">Selecciona un área</h2>
+
             <select
               className="w-full border p-2 rounded mb-4"
               value={selectedArea}
@@ -170,6 +220,7 @@ export default function AuditoriasPage() {
                 <option key={area.id} value={area.id}>{area.nombre}</option>
               ))}
             </select>
+
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setShowModal(false)}
@@ -183,6 +234,42 @@ export default function AuditoriasPage() {
                 className="px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700"
               >
                 {loadingArea ? "Creando..." : "Crear"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🔥 NUEVO MODAL TIPO */}
+      {showModalTipo && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
+          <div className="bg-white p-6 rounded-lg w-80">
+            <h2 className="text-lg font-semibold mb-4">Auditoría por tipo</h2>
+
+            <select
+              className="w-full border p-2 rounded mb-4"
+              value={tipoSeleccionado}
+              onChange={(e) => setTipoSeleccionado(e.target.value)}
+            >
+              <option value="">-- Selecciona tipo --</option>
+              <option value="mantenimiento">En mantenimiento</option>
+              <option value="prestamo">En préstamo</option>
+              <option value="disponible">Disponible</option>
+            </select>
+
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowModalTipo(false)}
+                className="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleCrearAuditoriaTipo}
+                disabled={loadingTipo}
+                className="px-4 py-2 rounded bg-orange-600 text-white hover:bg-orange-700"
+              >
+                {loadingTipo ? "Creando..." : "Crear"}
               </button>
             </div>
           </div>
