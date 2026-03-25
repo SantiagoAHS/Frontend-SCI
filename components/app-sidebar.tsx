@@ -66,9 +66,7 @@ function NavGroup({ items }: { items: typeof mainNav }) {
                 <span className="sr-only">{item.label}</span>
               </Link>
             </TooltipTrigger>
-            <TooltipContent side="right" className="flex items-center gap-2 font-medium">
-              {item.label}
-            </TooltipContent>
+            <TooltipContent side="right">{item.label}</TooltipContent>
           </Tooltip>
         )
       })}
@@ -83,13 +81,17 @@ export function AppSidebar() {
 
   const [openPalette, setOpenPalette] = useState(false)
 
-  // NUEVO: estado de usuario
   const [user, setUser] = useState<any>(null)
   const [openProfile, setOpenProfile] = useState(false)
+  const [openEditProfile, setOpenEditProfile] = useState(false)
 
-  // Detectar sesión
+  const [formData, setFormData] = useState({
+    telefono: "",
+    password: "",
+  })
+
+  // 🔹 Detectar sesión
   useEffect(() => {
-
     const token = localStorage.getItem("token")
 
     if (token) {
@@ -99,12 +101,17 @@ export function AppSidebar() {
         },
       })
         .then(res => res.json())
-        .then(data => setUser(data))
+        .then(data => {
+          setUser(data)
+          setFormData({
+            telefono: data.telefono || "",
+            password: "",
+          })
+        })
         .catch(() => {
           localStorage.removeItem("token")
         })
     }
-
   }, [])
 
   const colorThemes = [
@@ -117,130 +124,176 @@ export function AppSidebar() {
 
   return (
     <>
-      <aside className="sticky top-0 flex h-screen w-16 flex-col items-center border-r border-border bg-card py-6">
+      <aside className="sticky top-0 flex h-screen w-16 flex-col items-center border-r bg-card py-6">
 
-        {/* BOTÓN PERFIL */}
+        {/* PERFIL */}
         <button
           onClick={() => {
-            if (user) {
-              setOpenProfile(true)
-            } else {
-              window.location.href = "/login"
-            }
+            if (user) setOpenProfile(true)
+            else window.location.href = "/login"
           }}
-          className="mb-8 flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition"
+          className="mb-8 flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-white"
         >
           <User className="h-5 w-5" />
         </button>
 
         <nav className="flex flex-1 flex-col items-center gap-2">
-
           <NavGroup items={mainNav} />
-
           <div className="my-2 h-px w-8 bg-border" />
-
           <NavGroup items={adminNav} />
 
-          {/* Apariencia */}
-          <div className="relative mt-4 flex flex-col items-center gap-2">
+          {/* Tema */}
+          <div className="mt-4 flex flex-col items-center gap-2">
 
-            {/* Palette */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={() => setOpenPalette(!openPalette)}
-                  className="flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-accent-foreground transition"
-                >
-                  <Palette className="h-5 w-5" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="right">Color de acento</TooltipContent>
-            </Tooltip>
+            <button onClick={() => setOpenPalette(!openPalette)}>
+              <Palette />
+            </button>
 
             {openPalette && (
-              <div className="absolute bottom-14 left-16 w-44 rounded-xl border border-border bg-card shadow-lg p-3">
-                <div className="flex flex-wrap justify-center gap-3">
-                  {colorThemes.map((ct) => (
+              <div className="absolute bottom-14 left-16 p-3 bg-card border rounded-xl">
+                <div className="flex gap-2">
+                  {colorThemes.map(ct => (
                     <button
                       key={ct.id}
                       onClick={() => {
                         setColorTheme(ct.id as any)
                         setOpenPalette(false)
                       }}
-                      className="group flex flex-col items-center gap-1"
-                    >
-                      <div
-                        className={cn(
-                          "h-8 w-8 rounded-full transition-all",
-                          ct.color,
-                          colorTheme === ct.id
-                            ? "ring-2 ring-foreground ring-offset-2 ring-offset-background scale-110"
-                            : "hover:scale-105"
-                        )}
-                      />
-                    </button>
+                      className={cn("h-6 w-6 rounded-full", ct.color)}
+                    />
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Dark mode */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                  className="flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-accent-foreground transition"
-                >
-                  {theme === "dark" ? (
-                    <Sun className="h-5 w-5" />
-                  ) : (
-                    <Moon className="h-5 w-5" />
-                  )}
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="right">
-                {theme === "dark" ? "Modo claro" : "Modo oscuro"}
-              </TooltipContent>
-            </Tooltip>
+            <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
+              {theme === "dark" ? <Sun /> : <Moon />}
+            </button>
 
           </div>
         </nav>
       </aside>
 
-      {/* MODAL PERFIL */}
+      {/* 🔹 MODAL PERFIL */}
       {openProfile && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
 
-          <div className="bg-card rounded-xl p-6 w-80 shadow-lg flex flex-col gap-4">
+          <div className="bg-card p-6 rounded-xl w-80">
 
-            <h2 className="text-lg font-semibold">Perfil</h2>
+            <h2 className="font-semibold mb-3">Perfil</h2>
 
-            <div className="text-sm space-y-1">
-              <p><strong>Nombre:</strong> {user?.nombre}</p>
-              <p><strong>Apellido:</strong> {user?.apellido}</p>
-              <p><strong>No. Empleado:</strong> {user?.numero_empleado}</p>
-              <p><strong>Rol:</strong> {user?.rol}</p>
-            </div>
+            <p><strong>Nombre:</strong> {user?.nombre}</p>
+            <p><strong>Apellido:</strong> {user?.apellido}</p>
+            <p><strong>No. Empleado:</strong> {user?.numero_empleado}</p>
+            <p><strong>Rol:</strong> {user?.rol}</p>
 
-            <div className="flex gap-2 mt-2">
+            <div className="flex gap-2 mt-4">
 
-              {/* Logout */}
+              {/* CONFIG */}
+              <button
+                onClick={() => {
+                  setOpenProfile(false)
+                  setOpenEditProfile(true)
+                }}
+                className="w-full bg-blue-500 text-white py-2 rounded-lg"
+              >
+                Configuración
+              </button>
+
+              {/* LOGOUT */}
               <button
                 onClick={() => {
                   localStorage.removeItem("token")
                   window.location.reload()
                 }}
-                className="w-full rounded-lg bg-red-500 text-white py-2 text-sm hover:bg-red-600"
+                className="w-full bg-red-500 text-white py-2 rounded-lg"
               >
                 Cerrar sesión
               </button>
 
-              {/* Close */}
+            </div>
+
+            <button
+              onClick={() => setOpenProfile(false)}
+              className="mt-2 w-full border py-2 rounded-lg"
+            >
+              Cerrar
+            </button>
+
+          </div>
+        </div>
+      )}
+
+      {/* 🔹 MODAL EDITAR */}
+      {openEditProfile && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
+
+          <div className="bg-card p-6 rounded-xl w-80">
+
+            <h2 className="font-semibold mb-3">Configuración</h2>
+
+            <input
+              placeholder="Teléfono"
+              value={formData.telefono}
+              onChange={(e) =>
+                setFormData({ ...formData, telefono: e.target.value })
+              }
+              className="w-full border p-2 mb-2 rounded"
+            />
+
+            <input
+              type="password"
+              placeholder="Nueva contraseña"
+              value={formData.password}
+              onChange={(e) =>
+                setFormData({ ...formData, password: e.target.value })
+              }
+              className="w-full border p-2 mb-3 rounded"
+            />
+
+            <div className="flex gap-2">
+
               <button
-                onClick={() => setOpenProfile(false)}
-                className="w-full rounded-lg border py-2 text-sm hover:bg-accent"
+                onClick={async () => {
+                  const token = localStorage.getItem("token")
+
+                  const body: any = {
+                    telefono: formData.telefono,
+                  }
+
+                  if (formData.password) {
+                    body.password = formData.password
+                  }
+
+                  const res = await fetch(`${API_URL}/users/me/`, {
+                    method: "PUT",
+                    headers: {
+                      "Content-Type": "application/json",
+                      Authorization: `Token ${token}`,
+                    },
+                    body: JSON.stringify(body),
+                  })
+
+                  if (res.ok) {
+                    setUser({
+                      ...user,
+                      telefono: formData.telefono,
+                    })
+                    setOpenEditProfile(false)
+                  } else {
+                    alert("Error al actualizar")
+                  }
+                }}
+                className="w-full bg-green-500 text-white py-2 rounded"
               >
-                Cerrar
+                Guardar
+              </button>
+
+              <button
+                onClick={() => setOpenEditProfile(false)}
+                className="w-full border py-2 rounded"
+              >
+                Cancelar
               </button>
 
             </div>
