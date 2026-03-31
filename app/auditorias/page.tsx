@@ -1,5 +1,6 @@
 "use client"
 
+import { API_URL } from "@/config/api"
 import { useEffect, useState } from "react"
 import { ClipboardCheck, Plus, MapPin } from "lucide-react"
 
@@ -22,7 +23,7 @@ export default function AuditoriasPage() {
   const fetchAuditorias = async () => {
     const token = localStorage.getItem("token")
     try {
-      const res = await fetch("http://localhost:8000/api/auditorias/list/", {
+      const res = await fetch(`${API_URL}/auditorias/list/`, {
         headers: { Authorization: `Token ${token}` },
       })
       if (!res.ok) {
@@ -40,7 +41,7 @@ export default function AuditoriasPage() {
     const token = localStorage.getItem("token")
 
     try {
-      const res = await fetch(`http://localhost:8000/api/auditoria/${id}/pdf/`, {
+      const res = await fetch(`${API_URL}/auditoria/${id}/pdf/`, {
         headers: {
           Authorization: `Token ${token}`,
         },
@@ -70,7 +71,7 @@ export default function AuditoriasPage() {
   const fetchAreas = async () => {
     const token = localStorage.getItem("token")
     try {
-      const res = await fetch("http://localhost:8000/api/areas/list/?activas=true", {
+      const res = await fetch(`${API_URL}/areas/list/?activas=true`, {
         headers: { Authorization: `Token ${token}` },
       })
       if (!res.ok) return
@@ -91,7 +92,7 @@ export default function AuditoriasPage() {
     const token = localStorage.getItem("token")
     setLoading(true)
     try {
-      const res = await fetch("http://localhost:8000/api/auditoria/iniciar/", {
+      const res = await fetch(`${API_URL}/auditoria/iniciar/`, {
         method: "POST",
         headers: { Authorization: `Token ${token}` },
       })
@@ -112,7 +113,7 @@ export default function AuditoriasPage() {
     const token = localStorage.getItem("token")
     setLoadingArea(true)
     try {
-      const res = await fetch("http://localhost:8000/api/auditoria/iniciar/area/", {
+      const res = await fetch(`${API_URL}/auditoria/iniciar/area/`, {
         method: "POST",
         headers: {
           Authorization: `Token ${token}`,
@@ -141,7 +142,7 @@ export default function AuditoriasPage() {
     setLoadingTipo(true)
 
     try {
-      const res = await fetch("http://localhost:8000/api/auditoria/iniciar/tipo/", {
+      const res = await fetch(`${API_URL}/auditoria/iniciar/tipo/`, {
         method: "POST",
         headers: {
           Authorization: `Token ${token}`,

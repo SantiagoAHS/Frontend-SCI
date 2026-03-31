@@ -87,6 +87,7 @@ export function AppSidebar() {
 
   const [formData, setFormData] = useState({
     telefono: "",
+    email: "",   
     password: "",
   })
 
@@ -105,6 +106,7 @@ export function AppSidebar() {
           setUser(data)
           setFormData({
             telefono: data.telefono || "",
+            email: data.email || "",   // nuevo
             password: "",
           })
         })
@@ -186,6 +188,14 @@ export function AppSidebar() {
             <p><strong>Apellido:</strong> {user?.apellido}</p>
             <p><strong>No. Empleado:</strong> {user?.numero_empleado}</p>
             <p><strong>Rol:</strong> {user?.rol}</p>
+            <p>
+              <strong>Correo:</strong> {user?.email || "No registrado"}
+            </p>
+
+            <p>
+              <strong>Estado:</strong>{" "}
+              {user?.email_verified ? "Verificado ✅" : "No verificado ❌"}
+            </p>
 
             <div className="flex gap-2 mt-4">
 
@@ -233,6 +243,40 @@ export function AppSidebar() {
             <h2 className="font-semibold mb-3">Configuración</h2>
 
             <input
+              type="email"
+              placeholder="Correo electrónico"
+              value={formData.email}
+              onChange={(e) =>
+                setFormData({ ...formData, email: e.target.value })
+              }
+              className="w-full border p-2 mb-2 rounded"
+            />
+
+            {user?.email && !user?.email_verified && (
+              <button
+                onClick={async () => {
+                  const token = localStorage.getItem("token")
+
+                  const res = await fetch(`${API_URL}/send-verification-email/`, {
+                    method: "POST",
+                    headers: {
+                      Authorization: `Token ${token}`,
+                    },
+                  })
+
+                  if (res.ok) {
+                    alert("Correo de verificación enviado 📩")
+                  } else {
+                    alert("Error al enviar correo")
+                  }
+                }}
+                className="w-full bg-yellow-500 text-white py-2 mb-2 rounded"
+              >
+                Verificar correo
+              </button>
+            )}
+
+            <input
               placeholder="Teléfono"
               value={formData.telefono}
               onChange={(e) =>
@@ -259,6 +303,7 @@ export function AppSidebar() {
 
                   const body: any = {
                     telefono: formData.telefono,
+                    email: formData.email,  
                   }
 
                   if (formData.password) {
@@ -278,6 +323,7 @@ export function AppSidebar() {
                     setUser({
                       ...user,
                       telefono: formData.telefono,
+                      email: formData.email, 
                     })
                     setOpenEditProfile(false)
                   } else {

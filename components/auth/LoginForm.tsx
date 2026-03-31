@@ -79,6 +79,15 @@ const LoginForm = () => {
           placeholder="********"
           required
         />
+
+        <p className="text-sm text-right mb-4">
+          <a
+            href="/forgot-password"
+            className="text-blue-500 hover:underline"
+          >
+            ¿Olvidaste tu contraseña?
+          </a>
+        </p>
       </div>
 
       {error && (
