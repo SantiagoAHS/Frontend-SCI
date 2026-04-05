@@ -70,8 +70,14 @@ export default function CreateUserPage() {
       const data = await response.json()
 
       if (!response.ok) {
-        setError(data.detail || data.error || "Error al crear el usuario. Revisa los datos.")
+        // Si data es un objeto de errores de Django, los extraemos
+        const errorMsg = typeof data === 'object' 
+          ? Object.entries(data).map(([field, msgs]) => `${field}: ${msgs}`).join(", ")
+          : data.detail || data.error || "Error al crear el usuario";
+
+        setError(errorMsg)
         setLoading(false)
+        console.log("Error detallado del backend:", data) // Revisa la consola del navegador (F12)
         return
       }
 
@@ -211,7 +217,7 @@ export default function CreateUserPage() {
                 className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all cursor-pointer"
               >
                 <option value="admin">Administrador</option>
-                <option value="operativo">Operador</option>
+                <option value="operador">Operador</option>
                 <option value="auditor">Auditor</option>
               </select>
             </div>
