@@ -2,22 +2,27 @@
 
 import { API_URL } from "@/config/api"
 import { useEffect, useState } from "react"
-import { ClipboardCheck, Plus, MapPin } from "lucide-react"
+import { 
+  ClipboardCheck, 
+  Plus, 
+  MapPin, 
+  FileText, 
+  Loader2, 
+  X,
+  Filter
+} from "lucide-react"
+import { cn } from "@/lib/utils"
 
 export default function AuditoriasPage() {
-
   const [loading, setLoading] = useState(false)
   const [loadingArea, setLoadingArea] = useState(false)
   const [loadingTipo, setLoadingTipo] = useState(false)
-
   const [auditorias, setAuditorias] = useState([])
   const [areas, setAreas] = useState([])
-
   const [showModal, setShowModal] = useState(false)
   const [showModalTipo, setShowModalTipo] = useState(false)
-
   const [selectedArea, setSelectedArea] = useState("")
-  const [tipoSeleccionado, setTipoSeleccionado] = useState("") // mantenimiento | prestamo
+  const [tipoSeleccionado, setTipoSeleccionado] = useState("")
 
   // 🔹 Obtener auditorías
   const fetchAuditorias = async () => {
@@ -26,45 +31,25 @@ export default function AuditoriasPage() {
       const res = await fetch(`${API_URL}/auditorias/list/`, {
         headers: { Authorization: `Token ${token}` },
       })
-      if (!res.ok) {
-        console.log("Error al obtener auditorías:", res.status)
-        return
-      }
+      if (!res.ok) return
       const data = await res.json()
       setAuditorias(data)
-    } catch (error) {
-      console.error("Error fetch auditorías:", error)
-    }
+    } catch (error) { console.error(error) }
   }
 
-  const handleDescargarPDF = async (id) => {
+  // 🔹 Descargar PDF
+  const handleDescargarPDF = async (id: number) => {
     const token = localStorage.getItem("token")
-
     try {
       const res = await fetch(`${API_URL}/auditoria/${id}/pdf/`, {
-        headers: {
-          Authorization: `Token ${token}`,
-        },
+        headers: { Authorization: `Token ${token}` },
       })
-
-      if (!res.ok) {
-        alert("Error al generar PDF")
-        return
-      }
-
       const blob = await res.blob()
       const url = window.URL.createObjectURL(blob)
-
       const a = document.createElement("a")
-      a.href = url
-      a.download = `auditoria_${id}.pdf`
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-
-    } catch (error) {
-      console.error("Error descargar PDF:", error)
-    }
+      a.href = url; a.download = `auditoria_${id}.pdf`
+      document.body.appendChild(a); a.click(); a.remove()
+    } catch (error) { console.error(error) }
   }
 
   // 🔹 Obtener áreas
@@ -74,12 +59,9 @@ export default function AuditoriasPage() {
       const res = await fetch(`${API_URL}/areas/list/?activas=true`, {
         headers: { Authorization: `Token ${token}` },
       })
-      if (!res.ok) return
       const data = await res.json()
       setAreas(data)
-    } catch (error) {
-      console.error("Error fetch áreas:", error)
-    }
+    } catch (error) {}
   }
 
   useEffect(() => {
@@ -87,7 +69,7 @@ export default function AuditoriasPage() {
     fetchAreas()
   }, [])
 
-  // 🔹 Auditoría general
+  // 🔹 Crear Auditoría General
   const handleCrearAuditoria = async () => {
     const token = localStorage.getItem("token")
     setLoading(true)
@@ -96,230 +78,196 @@ export default function AuditoriasPage() {
         method: "POST",
         headers: { Authorization: `Token ${token}` },
       })
-      if (!res.ok) { setLoading(false); return }
       const data = await res.json()
-      fetchAuditorias()
       window.location.href = `/auditorias/${data.auditoria_id}`
-    } catch (error) {
-      console.error("Error crear auditoría:", error)
-    } finally {
-      setLoading(false)
-    }
+    } finally { setLoading(false) }
   }
 
-  // 🔹 Auditoría por área
+  // 🔹 Crear Auditoría por Área (CORREGIDO: token definido)
   const handleCrearAuditoriaArea = async () => {
-    if (!selectedArea) return alert("Selecciona un área primero")
     const token = localStorage.getItem("token")
+    if (!selectedArea) return
     setLoadingArea(true)
     try {
       const res = await fetch(`${API_URL}/auditoria/iniciar/area/`, {
         method: "POST",
-        headers: {
-          Authorization: `Token ${token}`,
-          "Content-Type": "application/json"
+        headers: { 
+          Authorization: `Token ${token}`, 
+          "Content-Type": "application/json" 
         },
         body: JSON.stringify({ area_id: selectedArea })
       })
-      if (!res.ok) { setLoadingArea(false); return }
       const data = await res.json()
-      fetchAuditorias()
-      setShowModal(false)
-      setSelectedArea("")
       window.location.href = `/auditorias/${data.auditoria_id}`
-    } catch (error) {
-      console.error("Error crear auditoría por área:", error)
-    } finally {
-      setLoadingArea(false)
-    }
+    } finally { setLoadingArea(false) }
   }
 
-  // 🔹 Auditoría por tipo (NUEVO)
+  // 🔹 Crear Auditoría por Tipo (CORREGIDO: token definido)
   const handleCrearAuditoriaTipo = async () => {
-    if (!tipoSeleccionado) return alert("Selecciona el tipo")
-
     const token = localStorage.getItem("token")
+    if (!tipoSeleccionado) return
     setLoadingTipo(true)
-
     try {
       const res = await fetch(`${API_URL}/auditoria/iniciar/tipo/`, {
         method: "POST",
-        headers: {
-          Authorization: `Token ${token}`,
-          "Content-Type": "application/json"
+        headers: { 
+          Authorization: `Token ${token}`, 
+          "Content-Type": "application/json" 
         },
         body: JSON.stringify({ tipo: tipoSeleccionado })
       })
-
-      if (!res.ok) { setLoadingTipo(false); return }
-
       const data = await res.json()
-      fetchAuditorias()
-      setShowModalTipo(false)
-      setTipoSeleccionado("")
-
       window.location.href = `/auditorias/${data.auditoria_id}`
-    } catch (error) {
-      console.error("Error auditoría tipo:", error)
-    } finally {
-      setLoadingTipo(false)
-    }
+    } finally { setLoadingTipo(false) }
   }
 
   return (
     <div className="flex flex-col gap-6 p-6 lg:p-8">
-
-      {/* Header */}
-      <header className="flex items-center justify-between">
+      
+      {/* Header Estilo Mantenimientos */}
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
             <ClipboardCheck className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">Auditorías</h1>
-            <p className="text-sm text-muted-foreground">Historial de auditorías</p>
+            <h1 className="text-2xl font-bold tracking-tight text-balance text-foreground">Auditorías</h1>
+            <p className="text-sm text-muted-foreground">Control y validación de activos físicos</p>
           </div>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setShowModal(true)}
+            className="flex items-center gap-2 border border-border px-4 py-2 rounded-lg text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
+          >
+            <MapPin className="h-4 w-4 text-muted-foreground" />
+            Por Área
+          </button>
 
-          {/* Auditoría general */}
+          <button
+            onClick={() => setShowModalTipo(true)}
+            className="flex items-center gap-2 border border-border px-4 py-2 rounded-lg text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
+          >
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            Por Tipo
+          </button>
+
           <button
             onClick={handleCrearAuditoria}
             disabled={loading}
-            className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity shadow-sm"
           >
-            <Plus className="h-4 w-4" />
-            {loading ? "Creando..." : "Nueva Auditoría"}
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+            Nueva Auditoría
           </button>
-
-          {/* Auditoría por área */}
-          <button
-            onClick={() => setShowModal(true)}
-            className="inline-flex h-9 items-center gap-2 rounded-lg bg-green-600 px-4 text-sm font-medium text-white hover:bg-green-700"
-          >
-            <MapPin className="h-4 w-4" />
-            Auditoría por Área
-          </button>
-
-          {/* 🔥 NUEVO: Auditoría por tipo */}
-          <button
-            onClick={() => setShowModalTipo(true)}
-            className="inline-flex h-9 items-center gap-2 rounded-lg bg-orange-600 px-4 text-sm font-medium text-white hover:bg-orange-700"
-          >
-            <Plus className="h-4 w-4" />
-            Auditoría por Tipo
-          </button>
-
         </div>
       </header>
 
-      {/* Lista */}
-      <div className="flex flex-col gap-3">
-        {auditorias.length === 0 ? (
-          <p className="text-gray-500">No hay auditorías aún</p>
-        ) : (
-          auditorias.map((auditoria) => (
-              <div
-                key={auditoria.id}
-                onClick={() => window.location.href = `/auditorias/${auditoria.id}`}
-                className="cursor-pointer rounded-lg border p-4 hover:bg-gray-50 transition flex justify-between items-center"
-              >
-              <h3 className="font-semibold">{auditoria.nombre}</h3>
-              <p className="text-sm text-gray-500">Estado: {auditoria.estado}</p>
-              <p className="text-xs text-gray-400">
-                {new Date(auditoria.fecha_inicio).toLocaleString()}
-              </p>
-              <div className="flex items-center gap-2">
-                {auditoria.estado === "finalizada" && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation() // 🔥 evita que abra la auditoría
-                      handleDescargarPDF(auditoria.id)
-                    }}
-                    className="px-3 py-1 text-xs rounded bg-blue-600 text-white hover:bg-blue-700"
+      {/* Tabla Estilo Mantenimientos */}
+      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm mt-2">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead>
+              <tr className="border-b border-border bg-muted/50">
+                <th className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Nombre de Auditoría</th>
+                <th className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Estado</th>
+                <th className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Fecha de Inicio</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {auditorias.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-6 py-16 text-center text-muted-foreground italic">
+                    No se registran procesos de auditoría.
+                  </td>
+                </tr>
+              ) : (
+                auditorias.map((auditoria: any) => (
+                  <tr 
+                    key={auditoria.id} 
+                    className="group hover:bg-muted/50 transition-colors cursor-pointer"
+                    onClick={() => window.location.href = `/auditorias/${auditoria.id}`}
                   >
-                    Descargar PDF
-                  </button>
-                )}
-              </div>
-            </div>
-          ))
-        )}
+                    <td className="px-6 py-4 font-medium text-foreground">{auditoria.nombre}</td>
+                    <td className="px-6 py-4">
+                      <span className={cn(
+                        "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-tight",
+                        auditoria.estado === "finalizada" 
+                          ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400" 
+                          : "bg-amber-500/15 text-amber-700 dark:text-amber-400"
+                      )}>
+                        {auditoria.estado}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-muted-foreground">
+                      {new Date(auditoria.fecha_inicio).toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' })}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      {auditoria.estado === "finalizada" && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleDescargarPDF(auditoria.id) }}
+                          className="inline-flex items-center gap-2 text-xs bg-slate-800 text-white px-3 py-1.5 rounded-md hover:bg-slate-700 transition-colors"
+                        >
+                          <FileText className="h-3.5 w-3.5" />
+                          PDF
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      {/* Modal área (YA TENÍAS) */}
-      {showModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
-          <div className="bg-white p-6 rounded-lg w-80">
-            <h2 className="text-lg font-semibold mb-4">Selecciona un área</h2>
-
-            <select
-              className="w-full border p-2 rounded mb-4"
-              value={selectedArea}
-              onChange={(e) => setSelectedArea(e.target.value)}
-            >
-              <option value="">-- Selecciona --</option>
-              {areas.map((area) => (
-                <option key={area.id} value={area.id}>{area.nombre}</option>
-              ))}
-            </select>
-
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setShowModal(false)}
-                className="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleCrearAuditoriaArea}
-                disabled={loadingArea}
-                className="px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700"
-              >
-                {loadingArea ? "Creando..." : "Crear"}
+      {/* Modales */}
+      {(showModal || showModalTipo) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-card w-full max-w-sm p-6 rounded-xl border shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-start mb-4">
+              <h2 className="text-xl font-bold tracking-tight">
+                {showModal ? "Auditar por Área" : "Auditar por Tipo"}
+              </h2>
+              <button onClick={() => { setShowModal(false); setShowModalTipo(false) }} className="text-muted-foreground hover:text-foreground">
+                <X className="h-5 w-5" />
               </button>
             </div>
+
+            {showModal ? (
+              <select
+                className="w-full border border-input rounded-lg p-2.5 bg-background text-sm focus:ring-2 focus:ring-primary outline-none mb-6"
+                value={selectedArea}
+                onChange={(e) => setSelectedArea(e.target.value)}
+              >
+                <option value="">Selecciona ubicación...</option>
+                {areas.map((area: any) => <option key={area.id} value={area.id}>{area.nombre}</option>)}
+              </select>
+            ) : (
+              <select
+                className="w-full border border-input rounded-lg p-2.5 bg-background text-sm focus:ring-2 focus:ring-primary outline-none mb-6"
+                value={tipoSeleccionado}
+                onChange={(e) => setTipoSeleccionado(e.target.value)}
+              >
+                <option value="">Selecciona estado...</option>
+                <option value="mantenimiento">En mantenimiento</option>
+                <option value="prestamo">En préstamo</option>
+                <option value="disponible">Disponible</option>
+              </select>
+            )}
+
+            <button
+              onClick={showModal ? handleCrearAuditoriaArea : handleCrearAuditoriaTipo}
+              disabled={showModal ? (loadingArea || !selectedArea) : (loadingTipo || !tipoSeleccionado)}
+              className="w-full py-2.5 bg-primary text-white font-bold rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+            >
+              {loadingArea || loadingTipo ? "Iniciando..." : "Iniciar Auditoría"}
+            </button>
           </div>
         </div>
       )}
-
-      {/* 🔥 NUEVO MODAL TIPO */}
-      {showModalTipo && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
-          <div className="bg-white p-6 rounded-lg w-80">
-            <h2 className="text-lg font-semibold mb-4">Auditoría por tipo</h2>
-
-            <select
-              className="w-full border p-2 rounded mb-4"
-              value={tipoSeleccionado}
-              onChange={(e) => setTipoSeleccionado(e.target.value)}
-            >
-              <option value="">-- Selecciona tipo --</option>
-              <option value="mantenimiento">En mantenimiento</option>
-              <option value="prestamo">En préstamo</option>
-              <option value="disponible">Disponible</option>
-            </select>
-
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setShowModalTipo(false)}
-                className="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleCrearAuditoriaTipo}
-                disabled={loadingTipo}
-                className="px-4 py-2 rounded bg-orange-600 text-white hover:bg-orange-700"
-              >
-                {loadingTipo ? "Creando..." : "Crear"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
     </div>
   )
 }
