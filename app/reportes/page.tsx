@@ -35,22 +35,16 @@ const reportTypes = [
       "Registro detallado de todos los movimientos: asignaciones, reasignaciones, mantenimientos y bajas.",
   },
   {
-    icon: Trash2,
-    title: "Activos dados de Baja",
+    icon: Download,
+    title: "Códigos QR de Activos",
     description:
-      "Listado de activos retirados del inventario activo con motivo de baja, fecha y autorizacion.",
+      "Genera y descarga los códigos QR de todos los activos registrados en el sistema.",
   },
   {
     icon: Wrench,
     title: "Mantenimientos Realizados",
     description:
       "Historial de mantenimientos preventivos y correctivos con costos, tecnicos y resultados.",
-  },
-  {
-    icon: Timer,
-    title: "Activos por Vida Util",
-    description:
-      "Analisis de activos segun su vida util restante para planificacion de reemplazo y presupuesto.",
   },
 ]
 
@@ -247,6 +241,32 @@ export default function ReportesPage() {
     a.remove()
   }
 
+  const descargarQRActivos = async () => {
+    const token = localStorage.getItem("token")
+
+    const response = await fetch(`${API_URL}/activos/qr/descargar/`, {
+      headers: {
+        Authorization: `Token ${token}`,
+      },
+    })
+
+    if (!response.ok) {
+      alert("Error al generar los QR")
+      return
+    }
+
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+
+    const a = document.createElement("a")
+    a.href = url
+    a.download = "qr_activos.zip"
+
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+  }
+
   return (
     <div className="flex flex-col gap-6 p-6 lg:p-8">
 
@@ -394,6 +414,20 @@ export default function ReportesPage() {
                   </button>
 
                 </div>
+
+                ) : report.title === "Códigos QR de Activos" ? (
+
+                  <div className="flex flex-col gap-2">
+
+                    <button
+                      onClick={descargarQRActivos}
+                      className="h-9 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700 flex items-center justify-center gap-2"
+                    >
+                      <Download className="h-4 w-4" />
+                      Generar QR
+                    </button>
+
+                  </div>
 
               ) : (
 
