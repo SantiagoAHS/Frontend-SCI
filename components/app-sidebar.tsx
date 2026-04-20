@@ -283,18 +283,30 @@ export function AppSidebar() {
                   Configuración
                 </button>
 
-                {/* LOGOUT */}
-                <button
-                  onClick={() => {
+                  {/* LOGOUT */}
+                  <button
+                    onClick={() => {
+
+                      // borrar storage
                       localStorage.removeItem("token")
-                      setOpenProfile(false)  
-                      setUser(null)           
+                      localStorage.removeItem("user")
+
+                      // borrar cookie (CLAVE)
+                      document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;"
+
+                      // cerrar UI
+                      setOpenProfile(false)
+                      setUser(null)
+
+                      // redirigir
                       router.replace("/login")
-                  }}
-                  className="w-full bg-destructive hover:opacity-90 text-white py-2 rounded-xl transition font-medium"
-                >
-                  Cerrar sesión
-                </button>
+                      router.refresh() // importante para que middleware reevalúe
+
+                    }}
+                    className="w-full bg-destructive hover:opacity-90 text-white py-2 rounded-xl transition font-medium"
+                  >
+                    Cerrar sesión
+                  </button>
 
               </div>
 

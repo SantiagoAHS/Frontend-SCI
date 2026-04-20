@@ -50,6 +50,9 @@ const LoginForm = () => {
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
 
+      // ✅ AGREGA ESTO 👇
+      document.cookie = `token=${data.token}; path=/`;
+
       // Redirigir al dashboard
       router.push("/");
       router.refresh(); // Asegura que el sidebar detecte el nuevo token
