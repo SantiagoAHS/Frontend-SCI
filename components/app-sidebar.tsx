@@ -2,10 +2,11 @@
 
 import { API_URL } from "@/config/api"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 import { useTheme } from "next-themes"
 import { useColorTheme } from "@/components/color-theme-provider"
+import { UserCircle, X, CheckCircle2, AlertCircle } from "lucide-react"
 
 import {
   LayoutDashboard,
@@ -78,6 +79,8 @@ export function AppSidebar() {
 
   const { theme, setTheme } = useTheme()
   const { colorTheme, setColorTheme } = useColorTheme()
+
+  const router = useRouter()
 
   const [openPalette, setOpenPalette] = useState(false)
 
@@ -177,176 +180,270 @@ export function AppSidebar() {
       </aside>
 
       {/* 🔹 MODAL PERFIL */}
-      {openProfile && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
+        {openProfile && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
 
-          <div className="bg-card p-6 rounded-xl w-80">
+            {/* BACKDROP */}
+            <div
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
+              onClick={() => setOpenProfile(false)}
+            />
 
-            <h2 className="font-semibold mb-3">Perfil</h2>
+            {/* MODAL */}
+            <div className="relative bg-card border border-border p-6 rounded-2xl w-full max-w-sm shadow-2xl animate-in zoom-in-95 duration-200 text-foreground">
 
-            <p><strong>Nombre:</strong> {user?.nombre}</p>
-            <p><strong>Apellido:</strong> {user?.apellido}</p>
-            <p><strong>No. Empleado:</strong> {user?.numero_empleado}</p>
-            <p><strong>Rol:</strong> {user?.rol}</p>
-            <p>
-              <strong>Correo:</strong> {user?.email || "No registrado"}
-            </p>
+              {/* HEADER */}
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
 
-            <p>
-              <strong>Estado:</strong>{" "}
-              {user?.email_verified ? "Verificado ✅" : "No verificado ❌"}
-            </p>
+                  <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+                    <UserCircle className="h-6 w-6" />
+                  </div>
 
-            <div className="flex gap-2 mt-4">
+                  <div>
+                    <h2 className="text-lg font-bold leading-tight">
+                      {user?.nombre} {user?.apellido}
+                    </h2>
+                    <p className="text-[11px] text-primary font-bold uppercase tracking-widest mt-0.5">
+                      @{user?.username}
+                    </p>
+                  </div>
+                </div>
 
-              {/* CONFIG */}
-              <button
-                onClick={() => {
-                  setOpenProfile(false)
-                  setOpenEditProfile(true)
-                }}
-                className="w-full bg-blue-500 text-white py-2 rounded-lg"
-              >
-                Configuración
-              </button>
+                <button
+                  onClick={() => setOpenProfile(false)}
+                  className="text-muted-foreground hover:text-foreground p-1 transition"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
 
-              {/* LOGOUT */}
-              <button
-                onClick={() => {
-                  localStorage.removeItem("token")
-                  window.location.reload()
-                }}
-                className="w-full bg-red-500 text-white py-2 rounded-lg"
-              >
-                Cerrar sesión
-              </button>
+              {/* INFO */}
+              <div className="space-y-3 text-sm py-4 border-y border-border">
+
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground font-medium">ID Empleado</span>
+                  <span className="font-mono bg-muted px-2 py-0.5 rounded text-xs">
+                    {user?.numero_empleado}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground font-medium">Rol</span>
+                  <span className="capitalize font-medium">{user?.rol}</span>
+                </div>
+
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground font-medium">Teléfono</span>
+                  <span className="font-medium">
+                    {user?.telefono || "No registrado"}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground font-medium">Correo</span>
+                  <span className="truncate max-w-[150px]">
+                    {user?.email || "No registrado"}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center pt-1">
+                  <span className="text-muted-foreground font-medium">Estado</span>
+
+                  <span
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                      user?.email_verified
+                        ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                        : "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                    }`}
+                  >
+                    {user?.email_verified ? (
+                      <CheckCircle2 className="h-3 w-3" />
+                    ) : (
+                      <AlertCircle className="h-3 w-3" />
+                    )}
+
+                    {user?.email_verified ? "Verificado" : "No Verificado"}
+                  </span>
+                </div>
+
+              </div>
+
+              {/* BOTONES */}
+              <div className="flex gap-2 mt-5">
+
+                {/* CONFIG */}
+                <button
+                  onClick={() => {
+                    setOpenProfile(false)
+                    setOpenEditProfile(true)
+                  }}
+                  className="w-full bg-primary hover:opacity-90 text-white py-2 rounded-xl transition font-medium"
+                >
+                  Configuración
+                </button>
+
+                {/* LOGOUT */}
+                <button
+                  onClick={() => {
+                      localStorage.removeItem("token")
+                      setOpenProfile(false)  
+                      setUser(null)           
+                      router.replace("/login")
+                  }}
+                  className="w-full bg-destructive hover:opacity-90 text-white py-2 rounded-xl transition font-medium"
+                >
+                  Cerrar sesión
+                </button>
+
+              </div>
 
             </div>
-
-            <button
-              onClick={() => setOpenProfile(false)}
-              className="mt-2 w-full border py-2 rounded-lg"
-            >
-              Cerrar
-            </button>
-
           </div>
-        </div>
-      )}
+        )}
 
       {/* 🔹 MODAL EDITAR */}
-      {openEditProfile && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
+        {openEditProfile && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
 
-          <div className="bg-card p-6 rounded-xl w-80">
-
-            <h2 className="font-semibold mb-3">Configuración</h2>
-
-            <input
-              type="email"
-              placeholder="Correo electrónico"
-              value={formData.email}
-              onChange={(e) =>
-                setFormData({ ...formData, email: e.target.value })
-              }
-              className="w-full border p-2 mb-2 rounded"
+            {/* BACKDROP */}
+            <div
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
+              onClick={() => setOpenEditProfile(false)}
             />
 
-            {user?.email && !user?.email_verified && (
-              <button
-                onClick={async () => {
-                  const token = localStorage.getItem("token")
+            {/* MODAL */}
+            <div className="relative bg-card border border-border p-6 rounded-2xl w-full max-w-sm shadow-2xl animate-in zoom-in-95 duration-200 text-foreground">
 
-                  const res = await fetch(`${API_URL}/send-verification-email/`, {
-                    method: "POST",
-                    headers: {
-                      Authorization: `Token ${token}`,
-                    },
-                  })
+              {/* HEADER */}
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-lg font-bold">Configuración</h2>
 
-                  if (res.ok) {
-                    alert("Correo de verificación enviado 📩")
-                  } else {
-                    alert("Error al enviar correo")
+                <button
+                  onClick={() => setOpenEditProfile(false)}
+                  className="text-muted-foreground hover:text-foreground p-1 transition"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              {/* FORM */}
+              <div className="space-y-3">
+
+                {/* EMAIL */}
+                <input
+                  type="email"
+                  placeholder="Correo electrónico"
+                  value={formData.email}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
                   }
-                }}
-                className="w-full bg-yellow-500 text-white py-2 mb-2 rounded"
-              >
-                Verificar correo
-              </button>
-            )}
+                  className="w-full bg-muted border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                />
 
-            <input
-              placeholder="Teléfono"
-              value={formData.telefono}
-              onChange={(e) =>
-                setFormData({ ...formData, telefono: e.target.value })
-              }
-              className="w-full border p-2 mb-2 rounded"
-            />
+                {/* VERIFICAR CORREO */}
+                {user?.email && !user?.email_verified && (
+                  <button
+                    onClick={async () => {
+                      const token = localStorage.getItem("token")
 
-            <input
-              type="password"
-              placeholder="Nueva contraseña"
-              value={formData.password}
-              onChange={(e) =>
-                setFormData({ ...formData, password: e.target.value })
-              }
-              className="w-full border p-2 mb-3 rounded"
-            />
+                      const res = await fetch(`${API_URL}/send-verification-email/`, {
+                        method: "POST",
+                        headers: {
+                          Authorization: `Token ${token}`,
+                        },
+                      })
 
-            <div className="flex gap-2">
+                      if (res.ok) {
+                        alert("Correo de verificación enviado 📩")
+                      } else {
+                        alert("Error al enviar correo")
+                      }
+                    }}
+                    className="w-full bg-amber-500/90 hover:bg-amber-500 text-white py-2 rounded-xl text-sm transition"
+                  >
+                    Verificar correo
+                  </button>
+                )}
 
-              <button
-                onClick={async () => {
-                  const token = localStorage.getItem("token")
-
-                  const body: any = {
-                    telefono: formData.telefono,
-                    email: formData.email,  
+                {/* TELEFONO */}
+                <input
+                  placeholder="Teléfono"
+                  value={formData.telefono}
+                  onChange={(e) =>
+                    setFormData({ ...formData, telefono: e.target.value })
                   }
+                  className="w-full bg-muted border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                />
 
-                  if (formData.password) {
-                    body.password = formData.password
+                {/* PASSWORD */}
+                <input
+                  type="password"
+                  placeholder="Nueva contraseña"
+                  value={formData.password}
+                  onChange={(e) =>
+                    setFormData({ ...formData, password: e.target.value })
                   }
+                  className="w-full bg-muted border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                />
 
-                  const res = await fetch(`${API_URL}/users/me/`, {
-                    method: "PUT",
-                    headers: {
-                      "Content-Type": "application/json",
-                      Authorization: `Token ${token}`,
-                    },
-                    body: JSON.stringify(body),
-                  })
+              </div>
 
-                  if (res.ok) {
-                    setUser({
-                      ...user,
+              {/* BOTONES */}
+              <div className="flex gap-2 mt-6">
+
+                {/* GUARDAR */}
+                <button
+                  onClick={async () => {
+                    const token = localStorage.getItem("token")
+
+                    const body: any = {
                       telefono: formData.telefono,
-                      email: formData.email, 
-                    })
-                    setOpenEditProfile(false)
-                  } else {
-                    alert("Error al actualizar")
-                  }
-                }}
-                className="w-full bg-green-500 text-white py-2 rounded"
-              >
-                Guardar
-              </button>
+                      email: formData.email,
+                    }
 
-              <button
-                onClick={() => setOpenEditProfile(false)}
-                className="w-full border py-2 rounded"
-              >
-                Cancelar
-              </button>
+                    if (formData.password) {
+                      body.password = formData.password
+                    }
+
+                    const res = await fetch(`${API_URL}/users/me/`, {
+                      method: "PUT",
+                      headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Token ${token}`,
+                      },
+                      body: JSON.stringify(body),
+                    })
+
+                    if (res.ok) {
+                      setUser({
+                        ...user,
+                        telefono: formData.telefono,
+                        email: formData.email,
+                      })
+                      setOpenEditProfile(false)
+                    } else {
+                      alert("Error al actualizar")
+                    }
+                  }}
+                  className="w-full bg-primary hover:opacity-90 text-white py-2 rounded-xl transition font-medium"
+                >
+                  Guardar
+                </button>
+
+                {/* CANCELAR */}
+                <button
+                  onClick={() => setOpenEditProfile(false)}
+                  className="w-full border border-border hover:bg-muted py-2 rounded-xl transition font-medium"
+                >
+                  Cancelar
+                </button>
+
+              </div>
 
             </div>
-
           </div>
-        </div>
-      )}
+        )}
     </>
   )
 }
