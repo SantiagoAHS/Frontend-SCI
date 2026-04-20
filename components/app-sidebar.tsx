@@ -28,7 +28,8 @@ import {
   Phone,
   Mail,
   Lock,
-  UserCircle
+  UserCircle,
+  Loader2
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -91,13 +92,14 @@ export function AppSidebar() {
   const { colorTheme, setColorTheme } = useColorTheme()
   const pathname = usePathname()
 
-  const [isAuthenticated, setIsAuthenticated] = useState(false) // 👈 Estado de autenticación
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [openPalette, setOpenPalette] = useState(false)
   const [user, setUser] = useState<any>(null)
   const [openProfile, setOpenProfile] = useState(false)
   const [openEditProfile, setOpenEditProfile] = useState(false)
   
   const [showPassword, setShowPassword] = useState(false)
+  const [isVerifying, setIsVerifying] = useState(false)
   const [formData, setFormData] = useState({
     telefono: "",
     email: "",
@@ -135,17 +137,13 @@ export function AppSidebar() {
     } else {
       setIsAuthenticated(false)
     }
-  }, [fetchUserProfile, pathname]) // Re-comprobar cuando cambie la ruta
+  }, [fetchUserProfile, pathname])
 
-  // 🔹 SI NO ESTÁ AUTENTICADO O ESTÁ EN LOGIN, NO RENDERIZAR NADA
-  if (!isAuthenticated || pathname === "/login") {
-    return null
-  }
+  if (!isAuthenticated || pathname === "/login") return null
 
   const handleProfileClick = async () => {
     const token = localStorage.getItem("token")
     if (!token) return
-
     if (!user) {
       const loaded = await fetchUserProfile(token)
       if (loaded) setOpenProfile(true)
@@ -154,13 +152,6 @@ export function AppSidebar() {
     }
   }
 
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\D/g, "");
-    if (value.length <= 10) {
-      setFormData({ ...formData, telefono: value });
-    }
-  };
-
   const handleLogout = () => {
     localStorage.removeItem("token")
     localStorage.removeItem("user")
@@ -168,23 +159,28 @@ export function AppSidebar() {
     window.location.href = "/login"
   }
 
-  const colorThemes = [
-    { id: "default", color: "bg-blue-500" },
-    { id: "purple", color: "bg-violet-500" },
-    { id: "green", color: "bg-emerald-500" },
-    { id: "amber", color: "bg-amber-500" },
-    { id: "rose", color: "bg-rose-500" },
-  ]
+  const handleSendVerification = async () => {
+    setIsVerifying(true)
+    try {
+      const res = await fetch(`${API_URL}/send-verification-email/`, {
+        method: "POST",
+        headers: { Authorization: `Token ${localStorage.getItem("token")}` },
+      })
+      if (res.ok) alert("Correo de verificación enviado 📩")
+      else alert("Error al enviar el correo.")
+    } catch {
+      alert("Error de conexión.")
+    } finally {
+      setIsVerifying(false)
+    }
+  }
 
   return (
     <>
       <aside className="sticky top-0 z-40 flex h-screen w-16 flex-col items-center border-r bg-card py-6 shadow-sm">
         <Tooltip>
           <TooltipTrigger asChild>
-            <button
-              onClick={handleProfileClick}
-              className="mb-8 flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-md hover:opacity-90 transition-all"
-            >
+            <button onClick={handleProfileClick} className="mb-8 flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-md hover:opacity-90 transition-all">
               <User className="h-5 w-5" />
             </button>
           </TooltipTrigger>
@@ -203,11 +199,13 @@ export function AppSidebar() {
               </button>
               {openPalette && (
                 <div className="absolute bottom-0 left-12 p-3 bg-card border rounded-xl shadow-xl z-50 flex gap-2 animate-in slide-in-from-left-2 duration-200">
-                  {colorThemes.map(ct => (
+                  {["default", "purple", "green", "amber", "rose"].map(id => (
                     <button
-                      key={ct.id}
-                      onClick={() => { setColorTheme(ct.id as any); setOpenPalette(false); }}
-                      className={cn("h-6 w-6 rounded-full border-2 border-transparent hover:scale-110 transition-transform", ct.color, colorTheme === ct.id && "border-foreground/20 ring-2 ring-primary/20")}
+                      key={id}
+                      onClick={() => { setColorTheme(id as any); setOpenPalette(false); }}
+                      className={cn("h-6 w-6 rounded-full border-2 border-transparent hover:scale-110 transition-transform", 
+                        id === "default" ? "bg-blue-500" : id === "purple" ? "bg-violet-500" : id === "green" ? "bg-emerald-500" : id === "amber" ? "bg-amber-500" : "bg-rose-500",
+                        colorTheme === id && "border-foreground/20 ring-2 ring-primary/20")}
                     />
                   ))}
                 </div>
@@ -220,7 +218,7 @@ export function AppSidebar() {
         </nav>
       </aside>
 
-      {/* MODAL PERFIL */}
+      {/* MODAL PERFIL (CON TODOS LOS ELEMENTOS RESTAURADOS) */}
       {openProfile && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setOpenProfile(false)} />
@@ -303,8 +301,9 @@ export function AppSidebar() {
               if (res.ok) {
                 setUser({ ...user, telefono: formData.telefono, email: formData.email });
                 setOpenEditProfile(false);
+                alert("Perfil actualizado ✨");
               } else {
-                alert("Error al actualizar: Revisa los datos ingresados.");
+                alert("Error al actualizar datos.");
               }
             }} className="space-y-4">
               
@@ -318,20 +317,32 @@ export function AppSidebar() {
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="w-full bg-background border border-input p-2.5 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                  placeholder="ejemplo@correo.com"
                 />
               </div>
 
+              {/* BOTÓN VERIFICAR EMAIL (Solo aparece si no está verificado) */}
+              {user?.email && !user?.email_verified && (
+                <button
+                  type="button"
+                  disabled={isVerifying}
+                  onClick={handleSendVerification}
+                  className="w-full bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-bold py-2 rounded-xl border border-amber-500/20 transition-all uppercase flex items-center justify-center gap-2"
+                >
+                  {isVerifying ? <Loader2 className="h-3 w-3 animate-spin" /> : <Mail className="h-3 w-3" />}
+                  {isVerifying ? "Enviando..." : "Enviar verificación"}
+                </button>
+              )}
+
               <div className="space-y-1.5">
                 <label className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 ml-1">
-                  <Phone className="h-3 w-3" /> Teléfono (10 dígitos)
+                  <Phone className="h-3 w-3" /> Teléfono
                 </label>
                 <input
                   type="text"
                   value={formData.telefono}
-                  onChange={handlePhoneChange}
+                  onChange={(e) => setFormData({ ...formData, telefono: e.target.value.replace(/\D/g, "").slice(0, 10) })}
                   className="w-full bg-background border border-input p-2.5 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all font-mono"
-                  placeholder="Número a 10 dígitos"
+                  placeholder="10 dígitos"
                 />
               </div>
 
@@ -347,15 +358,10 @@ export function AppSidebar() {
                     className="w-full bg-background border border-input p-2.5 pr-10 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                     placeholder="••••••••"
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  >
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
-                <p className="text-[10px] text-muted-foreground ml-1 italic">Vacío para mantener actual.</p>
               </div>
 
               <div className="grid grid-cols-2 gap-3 mt-8 pt-2">
