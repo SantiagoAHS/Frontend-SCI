@@ -35,29 +35,28 @@ interface Asset {
 export default function ActivosPage() {
   const router = useRouter();
 
-  // Estados
   const [activos, setActivos] = useState<Asset[]>([]);
   const [filteredActivos, setFilteredActivos] = useState<Asset[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [activeType, setActiveType] = useState<string>("Todos");
 
-  // Filtros dinámicos basados en la data
+  // 🔐 AUTH CONTROL (igual que dashboard)
+  const [isAuth, setIsAuth] = useState<boolean | null>(null);
+
   const typeFilters = useMemo(() => {
     const tiposEnData = activos.map((a) => a.tipo_activo);
     const tiposUnicos = Array.from(new Set(tiposEnData)).sort();
     return ["Todos", ...tiposUnicos];
   }, [activos]);
 
-  // Fetch inicial de datos
   useEffect(() => {
     const fetchActivos = async () => {
       const token = localStorage.getItem("token");
-      if (!token) { 
-        setError("No autenticado"); 
-        setLoading(false); 
-        return; 
+
+      // 🚫 SIN TOKEN
+      if (!token) {
+        setIsAuth(false);
+        return;
       }
 
       try {
@@ -68,11 +67,17 @@ export default function ActivosPage() {
           },
         });
 
-        if (!res.ok) throw new Error("Error al cargar activos del servidor");
+        // 🚫 TOKEN INVÁLIDO
+        if (res.status === 401) {
+          localStorage.removeItem("token");
+          setIsAuth(false);
+          return;
+        }
+
+        if (!res.ok) throw new Error("Error al cargar activos");
 
         const data = await res.json();
-        
-        // Formatear data e incluir imagen por defecto
+
         const activosProcesados = data.map((a: any) => ({
           ...a,
           imagen: a.imagen || "/images/default-asset.png",
@@ -80,17 +85,18 @@ export default function ActivosPage() {
 
         setActivos(activosProcesados);
         setFilteredActivos(activosProcesados);
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
+
+        setIsAuth(true);
+
+      } catch (error) {
+        console.error(error);
+        setIsAuth(false);
       }
     };
 
     fetchActivos();
   }, []);
 
-  // Lógica de filtrado (Búsqueda + Tipo)
   useEffect(() => {
     const filtered = activos.filter((a) => {
       const matchType = activeType === "Todos" || a.tipo_activo === activeType;
@@ -103,24 +109,47 @@ export default function ActivosPage() {
     setFilteredActivos(filtered);
   }, [search, activeType, activos]);
 
-  if (loading) return (
-    <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
-      <div className="h-10 w-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
-      <p className="text-muted-foreground font-medium animate-pulse uppercase text-xs tracking-widest">Cargando catálogo...</p>
-    </div>
-  );
+  // ⏳ LOADING
+  if (isAuth === null) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
+        <div className="h-10 w-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+        <p className="text-muted-foreground font-medium animate-pulse uppercase text-xs tracking-widest">
+          Cargando catálogo...
+        </p>
+      </div>
+    );
+  }
 
-  if (error) return (
-    <div className="p-10 text-center">
-      <p className="text-red-500 font-bold bg-red-50 inline-block px-4 py-2 rounded-lg border border-red-100">
-        Error: {error}
-      </p>
-    </div>
-  );
+  // 🔐 BLOQUEO (igual que dashboard)
+  if (isAuth === false) {
+    return (
+      <div className="flex items-center justify-center h-[70vh]">
+        <div className="text-center space-y-4 max-w-sm">
+
+          <div className="text-4xl">🔐</div>
+
+          <h2 className="text-xl font-bold">Acceso restringido</h2>
+
+          <p className="text-muted-foreground text-sm">
+            Debes iniciar sesión para acceder al sistema
+          </p>
+
+          <button
+            onClick={() => (window.location.href = "/login")}
+            className="mt-2 bg-primary hover:opacity-90 text-white px-4 py-2 rounded-xl transition"
+          >
+            Ir al login
+          </button>
+
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-6 p-6 lg:p-8">
-      
+
       {/* HEADER */}
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
@@ -128,7 +157,9 @@ export default function ActivosPage() {
             <Package className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">Catálogo de Activos</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+              Catálogo de Activos
+            </h1>
             <p className="text-sm text-muted-foreground">
               {filteredActivos.length} activos
             </p>
@@ -136,7 +167,6 @@ export default function ActivosPage() {
         </div>
 
         <div className="flex items-center gap-1 sm:gap-3">
-          {/* Botón Eliminar  */}
           <button
             onClick={() => router.push("/activos/delete")}
             className="group flex items-center gap-2 h-10 px-4 text-[11px] font-bold uppercase tracking-wider text-red-500 hover:bg-red-50 rounded-lg transition-all"
@@ -145,7 +175,6 @@ export default function ActivosPage() {
             <span className="hidden md:inline">Eliminar Activo</span>
           </button>
 
-          {/* Botón Registrar */}
           <button
             onClick={() => router.push("/activos/create")}
             className="flex items-center gap-2 bg-primary text-white h-10 px-5 rounded-lg text-[11px] font-bold uppercase tracking-wider hover:opacity-90 shadow-sm transition-all active:scale-95"
@@ -156,30 +185,29 @@ export default function ActivosPage() {
         </div>
       </header>
 
-      {/* CONTROLES: BUSCADOR Y FILTROS */}
+      {/* BUSCADOR */}
       <div className="flex flex-col gap-4">
         <div className="relative max-w-md w-full">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Buscar por nombre, ID o descripción..."
+            placeholder="Buscar..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="h-10 w-full rounded-lg border border-input bg-background pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all shadow-sm"
+            className="h-10 w-full rounded-lg border border-input bg-background pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 outline-none"
           />
         </div>
 
-        {/* Tabs de Tipo */}
         <div className="flex flex-wrap gap-2">
           {typeFilters.map((type) => (
             <button
               key={type}
               onClick={() => setActiveType(type)}
               className={cn(
-                "px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider border transition-all",
+                "px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider border",
                 activeType === type
-                  ? "bg-primary border-primary text-white shadow-sm"
-                  : "bg-card border-border text-muted-foreground hover:border-primary/50"
+                  ? "bg-primary text-white"
+                  : "bg-card text-muted-foreground"
               )}
             >
               {type}
@@ -188,49 +216,20 @@ export default function ActivosPage() {
         </div>
       </div>
 
-      {/* GRID DE RESULTADOS */}
+      {/* GRID */}
       <section className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
         {filteredActivos.map((activo) => (
           <ItemCard
             key={activo.id}
             title={activo.nombre}
             code={activo.id.toString()}
-            description={
-              <div className="flex flex-col gap-2">
-                <span className="line-clamp-2 text-muted-foreground text-xs italic">
-                  {activo.descripcion || "Sin descripción disponible"}
-                </span>
-                
-                {/* Atributos adicionales */}
-                {activo.valores && activo.valores.length > 0 && (
-                  <div className="mt-1 space-y-1 border-t border-dashed border-border/60 pt-2">
-                    {activo.valores.slice(0, 3).map((v) => (
-                      <div key={v.id} className="text-[10px] flex justify-between uppercase tracking-tight">
-                        <span className="text-muted-foreground font-medium">{v.caracteristica.nombre}:</span>
-                        <span className="font-bold text-foreground/70">{v.valor_texto || v.opcion?.nombre || "—"}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            }
+            description={activo.descripcion}
             type={activo.tipo_activo as AssetType}
             status={activo.estado as AssetStatus}
             area={activo.area}
             image={activo.imagen}
           />
         ))}
-
-        {/* Estado Vacío */}
-        {filteredActivos.length === 0 && (
-          <div className="col-span-full flex flex-col items-center gap-3 py-24 text-center border-2 border-dashed rounded-3xl bg-muted/10 opacity-60">
-            <Package className="h-12 w-12 text-muted-foreground/40" />
-            <div className="space-y-1">
-              <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">No hay resultados</p>
-              <p className="text-xs text-muted-foreground/70">Intenta ajustar los filtros o el término de búsqueda.</p>
-            </div>
-          </div>
-        )}
       </section>
     </div>
   );

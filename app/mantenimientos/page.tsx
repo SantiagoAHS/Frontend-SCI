@@ -3,7 +3,9 @@
 import { API_URL } from "@/config/api"
 import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
-import { Wrench, Plus, Search, RefreshCw, Eye, Edit3, Play, CheckCircle2 } from "lucide-react"
+import { 
+  Wrench, Plus, Search, RefreshCw, Eye, Edit3, CheckCircle2, Lock
+} from "lucide-react"
 import { cn } from "@/lib/utils"
 
 type Estado = "programado" | "en_proceso" | "completado" | "cancelado"
@@ -18,7 +20,6 @@ interface Maintenance {
   fecha_finalizacion?: string | null
   responsable: string
   costo?: string | null
-  descripcion_problema?: string | null
 }
 
 const estadoLabels: Record<Estado, string> = {
@@ -44,69 +45,157 @@ const statusFilters: (Estado | "Todos")[] = ["Todos", "programado", "en_proceso"
 
 export default function MantenimientosPage() {
   const router = useRouter()
+
   const [maintenances, setMaintenances] = useState<Maintenance[]>([])
   const [activeFilter, setActiveFilter] = useState<Estado | "Todos">("Todos")
   const [search, setSearch] = useState("")
+
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+  const [unauthorized, setUnauthorized] = useState(false)
 
   useEffect(() => {
+    const token = localStorage.getItem("token")
+
+    // 🔹 SIN TOKEN
+    if (!token) {
+      setUnauthorized(true)
+      setLoading(false)
+      return
+    }
+
     const fetchMaintenances = async () => {
-      const token = localStorage.getItem("token")
-      if (!token) { setError("No autenticado"); setLoading(false); return }
       try {
         const res = await fetch(`${API_URL}/mantenimientos/list/`, {
-          headers: { Authorization: `Token ${token}`, "Content-Type": "application/json" },
+          headers: {
+            Authorization: `Token ${token}`,
+            "Content-Type": "application/json"
+          },
         })
+
+        if (res.status === 401) {
+          setUnauthorized(true)
+          return
+        }
+
         if (!res.ok) throw new Error("Error cargando mantenimientos")
+
         const data = await res.json()
         setMaintenances(Array.isArray(data) ? data : data.results || [])
-      } catch (err: any) { setError(err.message) } finally { setLoading(false) }
+      } catch (err: any) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
     }
+
     fetchMaintenances()
   }, [])
 
   const actualizarMantenimientos = async () => {
     const token = localStorage.getItem("token")
     if (!token) return
+
     try {
       const res = await fetch(`${API_URL}/generar-preventivos/`, {
         method: "POST",
-        headers: { Authorization: `Token ${token}`, "Content-Type": "application/json" },
+        headers: {
+          Authorization: `Token ${token}`,
+          "Content-Type": "application/json"
+        },
       })
+
       const data = await res.json()
       alert(data.mensaje)
       window.location.reload()
-    } catch (err) { alert("Error actualizando mantenimientos") }
+    } catch {
+      alert("Error actualizando mantenimientos")
+    }
   }
 
   const cambiarEstado = async (id: number, nuevoEstado: Estado) => {
     const token = localStorage.getItem("token")
+
     try {
       const res = await fetch(`${API_URL}/mantenimientos/${id}/estado/`, {
         method: "PATCH",
-        headers: { Authorization: `Token ${token}`, "Content-Type": "application/json" },
+        headers: {
+          Authorization: `Token ${token}`,
+          "Content-Type": "application/json"
+        },
         body: JSON.stringify({ estado: nuevoEstado }),
       })
+
       if (!res.ok) throw new Error()
-      setMaintenances((prev) => prev.map((m) => m.id === id ? { ...m, estado: nuevoEstado } : m))
-    } catch (err) { console.error("Error cambiando estado") }
+
+      setMaintenances(prev =>
+        prev.map(m =>
+          m.id === id ? { ...m, estado: nuevoEstado } : m
+        )
+      )
+    } catch {
+      console.error("Error cambiando estado")
+    }
   }
 
   const filtered = maintenances.filter((m) => {
     const matchStatus = activeFilter === "Todos" || m.estado === activeFilter
-    const matchSearch = search === "" || 
-      m.activo.toLowerCase().includes(search.toLowerCase()) || 
+    const matchSearch =
+      search === "" ||
+      m.activo.toLowerCase().includes(search.toLowerCase()) ||
       m.responsable.toLowerCase().includes(search.toLowerCase())
+
     return matchStatus && matchSearch
   })
 
-  if (loading) return (
-    <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
-      <div className="h-10 w-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
-      <p className="text-muted-foreground font-medium animate-pulse uppercase text-[10px] tracking-widest">Cargando mantenimientos...</p>
-    </div>
-  )
+  // 🔹 LOADING
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
+        <div className="h-10 w-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+        <p className="text-muted-foreground font-bold uppercase text-[10px] tracking-widest animate-pulse">
+          Cargando mantenimientos...
+        </p>
+      </div>
+    )
+  }
+
+  // 🔹 NO AUTORIZADO
+  if (unauthorized) {
+    return (
+      <div className="flex items-center justify-center h-[70vh]">
+        <div className="text-center space-y-4 max-w-sm">
+
+          <div className="text-4xl">🔐</div>
+
+          <h2 className="text-xl font-bold">Acceso restringido</h2>
+
+          <p className="text-muted-foreground text-sm">
+            Debes iniciar sesión para acceder al sistema
+          </p>
+
+          <button
+            onClick={() => (window.location.href = "/login")}
+            className="mt-2 bg-primary hover:opacity-90 text-white px-4 py-2 rounded-xl transition"
+          >
+            Ir al login
+          </button>
+
+        </div>
+      </div>
+    )
+  }
+
+  // 🔹 ERROR
+  if (error) {
+    return (
+      <div className="p-10 text-center">
+        <p className="text-red-500 font-bold bg-red-50 px-4 py-2 rounded-lg border border-red-100 inline-block">
+          {error}
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-6 p-6 lg:p-8">

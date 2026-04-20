@@ -3,7 +3,6 @@
 import { API_URL } from "@/config/api"
 import { useEffect, useState } from "react"
 import { StatCard } from "@/components/stat-card"
-import { StatusBadge, type AssetStatus } from "@/components/status-badge"
 import {
   Package,
   ArrowRightLeft,
@@ -20,7 +19,7 @@ import {
   YAxis,
   Tooltip as RechartsTooltip,
   Legend,
-  Cell, 
+  Cell,
 } from "recharts"
 
 const CHART_COLORS = [
@@ -36,10 +35,17 @@ export default function DashboardPage() {
   const [kpis, setKpis] = useState<any>(null)
   const [assetsByType, setAssetsByType] = useState<any[]>([])
   const [assetsByStatus, setAssetsByStatus] = useState<any[]>([])
+  const [isAuth, setIsAuth] = useState<boolean | null>(null)
 
   useEffect(() => {
     const fetchStats = async () => {
       const token = localStorage.getItem("token")
+
+      // 🚫 NO TOKEN
+      if (!token) {
+        setIsAuth(false)
+        return
+      }
 
       try {
         const res = await fetch(`${API_URL}/dashboard/stats/`, {
@@ -49,35 +55,72 @@ export default function DashboardPage() {
           },
         })
 
+        // 🚫 TOKEN INVÁLIDO
+        if (res.status === 401) {
+          localStorage.removeItem("token")
+          setIsAuth(false)
+          return
+        }
+
         if (!res.ok) throw new Error("Error cargando estadísticas")
 
         const data = await res.json()
 
         setKpis(data.kpis)
 
-        // Transformar por_tipo para gráfica
         const tipos = data.por_tipo.map((item: any) => ({
           name: item.tipo_activo__nombre,
           cantidad: item.total,
         }))
         setAssetsByType(tipos)
 
-        // Transformar por_estado para gráfica
         const estados = data.por_estado.map((item: any) => ({
           name: item.estado,
           value: item.total,
         }))
         setAssetsByStatus(estados)
 
+        setIsAuth(true)
+
       } catch (error) {
         console.error(error)
+        setIsAuth(false)
       }
     }
 
     fetchStats()
   }, [])
 
-  if (!kpis) return <div className="p-6">Cargando...</div>
+  // ⏳ LOADING
+  if (isAuth === null) {
+    return <div className="p-6">Cargando...</div>
+  }
+
+  // 🚫 SIN ACCESO
+  if (isAuth === false) {
+    return (
+      <div className="flex items-center justify-center h-[70vh]">
+        <div className="text-center space-y-4 max-w-sm">
+
+          <div className="text-4xl">🔐</div>
+
+          <h2 className="text-xl font-bold">Acceso restringido</h2>
+
+          <p className="text-muted-foreground text-sm">
+            Debes iniciar sesión para acceder al dashboard del sistema
+          </p>
+
+          <button
+            onClick={() => (window.location.href = "/login")}
+            className="mt-2 bg-primary hover:opacity-90 text-white px-4 py-2 rounded-xl transition"
+          >
+            Ir al login
+          </button>
+
+        </div>
+      </div>
+    )
+  }
 
   const stats = [
     { label: "Total Activos", value: kpis.total, icon: Package },

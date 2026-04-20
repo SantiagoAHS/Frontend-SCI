@@ -10,7 +10,8 @@ import {
   Bell, 
   User, 
   Package, 
-  CheckCircle2 
+  CheckCircle2,
+  Lock
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -38,40 +39,67 @@ const statusFilters = ["Todos", "activo", "finalizado", "vencido", "cancelado"]
 export default function AsignacionesPage() {
   const router = useRouter()
 
-  // Definición de todos los estados 
   const [prestamos, setPrestamos] = useState<Prestamo[]>([])
   const [notificaciones, setNotificaciones] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [unauthorized, setUnauthorized] = useState(false)
+
   const [activeFilter, setActiveFilter] = useState<string>("Todos")
   const [search, setSearch] = useState("")
 
-  // Carga de datos inicial
   useEffect(() => {
+    const token = localStorage.getItem("token")
+
+    // 🔹 NO HAY TOKEN
+    if (!token) {
+      setUnauthorized(true)
+      setLoading(false)
+      return
+    }
+
     const fetchPrestamos = async () => {
-      const token = localStorage.getItem("token")
-      if (!token) { setError("No autenticado"); setLoading(false); return }
       try {
         const res = await fetch(`${API_URL}/prestamos/list/`, {
-          headers: { Authorization: `Token ${token}`, "Content-Type": "application/json" },
+          headers: {
+            Authorization: `Token ${token}`,
+            "Content-Type": "application/json"
+          },
         })
+
+        if (res.status === 401) {
+          setUnauthorized(true)
+          return
+        }
+
         if (!res.ok) throw new Error("Error cargando préstamos")
+
         const data = await res.json()
         setPrestamos(data.results || data)
-      } catch (err: any) { setError(err.message) } finally { setLoading(false) }
+      } catch (err: any) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
     }
 
     const fetchNotificaciones = async () => {
-      const token = localStorage.getItem("token")
-      if (!token) return
       try {
         const res = await fetch(`${API_URL}/prestamos/notificaciones/`, {
           headers: { Authorization: `Token ${token}` },
         })
+
         if (!res.ok) return
+
         const data = await res.json()
-        setNotificaciones((data.prestamos_por_vencer?.length || 0) + (data.prestamos_vencidos?.length || 0))
-      } catch (err) { console.error(err) }
+
+        setNotificaciones(
+          (data.prestamos_por_vencer?.length || 0) +
+          (data.prestamos_vencidos?.length || 0)
+        )
+      } catch (err) {
+        console.error(err)
+      }
     }
 
     fetchPrestamos()
@@ -81,39 +109,109 @@ export default function AsignacionesPage() {
   const finalizarPrestamo = async (id: number) => {
     const token = localStorage.getItem("token")
     if (!token) return
+
     if (!confirm("¿Deseas finalizar este préstamo?")) return
+
     try {
       const res = await fetch(`${API_URL}/prestamos/${id}/finalizar/`, {
         method: "PATCH",
-        headers: { Authorization: `Token ${token}`, "Content-Type": "application/json" },
+        headers: {
+          Authorization: `Token ${token}`,
+          "Content-Type": "application/json"
+        },
       })
+
       if (!res.ok) throw new Error("No se pudo finalizar")
-      setPrestamos((prev) => prev.map((p) => p.id === id ? { ...p, estado: "finalizado", estado_calculado: "finalizado" } : p))
-    } catch (err: any) { alert(err.message) }
+
+      setPrestamos(prev =>
+        prev.map(p =>
+          p.id === id
+            ? { ...p, estado: "finalizado", estado_calculado: "finalizado" }
+            : p
+        )
+      )
+    } catch (err: any) {
+      alert(err.message)
+    }
   }
 
   const filtered = prestamos.filter((a) => {
-    const matchStatus = activeFilter === "Todos" || a.estado_calculado === activeFilter
-    const matchSearch = search === "" || 
-      a.activo_nombre?.toLowerCase().includes(search.toLowerCase()) || 
+    const matchStatus =
+      activeFilter === "Todos" || a.estado_calculado === activeFilter
+
+    const matchSearch =
+      search === "" ||
+      a.activo_nombre?.toLowerCase().includes(search.toLowerCase()) ||
       a.responsable_nombre?.toLowerCase().includes(search.toLowerCase())
+
     return matchStatus && matchSearch
   })
 
-  if (loading) return <div className="p-10 text-center text-muted-foreground animate-pulse">Cargando préstamos...</div>
-  if (error) return <div className="p-10 text-center text-red-500 font-bold">{error}</div>
+  // 🔹 LOADING
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
+        <div className="h-10 w-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+        <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest animate-pulse">
+          Cargando préstamos...
+        </p>
+      </div>
+    )
+  }
+
+  // 🔹 NO AUTORIZADO (🔥 estilo consistente)
+  if (unauthorized) {
+    return (
+      <div className="flex items-center justify-center h-[70vh]">
+        <div className="text-center space-y-4 max-w-sm">
+
+          <div className="text-4xl">🔐</div>
+
+          <h2 className="text-xl font-bold">Acceso restringido</h2>
+
+          <p className="text-muted-foreground text-sm">
+            Debes iniciar sesión para acceder al sistema
+          </p>
+
+          <button
+            onClick={() => (window.location.href = "/login")}
+            className="mt-2 bg-primary hover:opacity-90 text-white px-4 py-2 rounded-xl transition"
+          >
+            Ir al login
+          </button>
+
+        </div>
+      </div>
+    )
+  }
+
+  // 🔹 ERROR
+  if (error) {
+    return (
+      <div className="p-10 text-center">
+        <p className="text-red-500 font-bold bg-red-50 px-4 py-2 rounded-lg border border-red-100 inline-block">
+          {error}
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-6 p-6 lg:p-8">
-      {/* Header */}
+
+      {/* HEADER */}
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
             <ArrowRightLeft className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">Préstamos</h1>
-            <p className="text-sm text-muted-foreground">Gestión de asignaciones de activos</p>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+              Préstamos
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Gestión de asignaciones de activos
+            </p>
           </div>
         </div>
 
