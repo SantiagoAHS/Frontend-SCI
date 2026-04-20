@@ -3,6 +3,8 @@
 import { API_URL } from "@/config/api"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { Wrench, Calendar, User, FileText, DollarSign, ArrowLeft, Loader2 } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 interface Activo {
   id: number
@@ -17,6 +19,7 @@ export default function CrearMantenimientoPreventivo() {
   const [descripcion, setDescripcion] = useState("")
   const [costo, setCosto] = useState<string>("")
   const [loading, setLoading] = useState(true)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
 
@@ -25,17 +28,11 @@ export default function CrearMantenimientoPreventivo() {
   useEffect(() => {
     const fetchActivos = async () => {
       const token = localStorage.getItem("token")
-      if (!token) {
-        setError("No autenticado")
-        setLoading(false)
-        return
-      }
+      if (!token) { setError("No autenticado"); setLoading(false); return }
 
       try {
         const res = await fetch(`${API_URL}/activos/disponibles/`, {
-          headers: {
-            Authorization: `Token ${token}`,
-          },
+          headers: { Authorization: `Token ${token}` },
         })
         if (!res.ok) throw new Error("Error cargando activos")
         const data = await res.json()
@@ -46,7 +43,6 @@ export default function CrearMantenimientoPreventivo() {
         setLoading(false)
       }
     }
-
     fetchActivos()
   }, [])
 
@@ -56,16 +52,13 @@ export default function CrearMantenimientoPreventivo() {
     setSuccess("")
 
     const token = localStorage.getItem("token")
-    if (!token) {
-      setError("No autenticado")
-      return
-    }
-
+    if (!token) { setError("No autenticado"); return }
     if (!activoId || !responsable) {
-      setError("Debes seleccionar un activo y poner el responsable")
+      setError("Debes seleccionar un activo y asignar un responsable")
       return
     }
 
+    setIsSubmitting(true)
     const payload = {
       activo: activoId,
       fecha_ingreso: fechaIngreso,
@@ -84,101 +77,158 @@ export default function CrearMantenimientoPreventivo() {
         body: JSON.stringify(payload),
       })
 
-      if (!res.ok) {
-        const text = await res.text()
-        throw new Error("Error al crear mantenimiento: " + text)
-      }
+      if (!res.ok) throw new Error("Error al crear el registro en el servidor")
 
-      setSuccess("Mantenimiento preventivo programado correctamente")
-      // Limpiar formulario
-      setActivoId("")
-      setResponsable("")
-      setDescripcion("")
-      setCosto("")
-      setFechaIngreso(new Date().toISOString().slice(0, 10))
-
-      // Opcional: redirigir a la lista
-      router.push("/mantenimientos")
+      setSuccess("Mantenimiento programado con éxito")
+      setTimeout(() => router.push("/mantenimientos"), 1500)
     } catch (err: any) {
       setError(err.message)
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
-  if (loading) return <div className="p-8 text-muted-foreground">Cargando activos...</div>
-  if (error) return <div className="p-8 text-red-500">{error}</div>
+  if (loading) return (
+    <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
+      <Loader2 className="h-8 w-8 text-primary animate-spin" />
+      <p className="text-xs uppercase tracking-widest font-bold text-muted-foreground">Cargando activos disponibles...</p>
+    </div>
+  )
 
   return (
-    <div className="p-6 lg:p-8 max-w-md mx-auto">
-      <h1 className="text-2xl font-bold mb-4">Programar Mantenimiento Preventivo</h1>
+    <div className="flex flex-col gap-6 p-6 lg:p-8 max-w-2xl mx-auto">
+      {/* HEADER */}
+      <header className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => router.back()}
+            className="p-2 hover:bg-muted rounded-full transition-colors"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">Programar mantenimiento</h1>
+            <p className="text-sm text-muted-foreground">Nuevo registro de mantenimiento</p>
+          </div>
+        </div>
+        <div className="h-10 w-10 flex items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <Wrench className="h-5 w-5" />
+        </div>
+      </header>
 
-      {success && <div className="mb-4 text-green-600">{success}</div>}
-      {error && <div className="mb-4 text-red-600">{error}</div>}
+      {/* ALERTAS */}
+      {error && (
+        <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-600 text-xs font-bold uppercase tracking-wide">
+          {error}
+        </div>
+      )}
+      {success && (
+        <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 text-xs font-bold uppercase tracking-wide">
+          {success}
+        </div>
+      )}
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <div>
-          <label className="block mb-1 text-sm font-medium">Activo</label>
+      {/* FORMULARIO */}
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-card p-6 rounded-xl border border-border shadow-sm">
+        
+        {/* ACTIVO */}
+        <div className="space-y-2 md:col-span-2">
+          <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+            <Wrench className="h-3 w-3" /> Activo a Intervenir
+          </label>
           <select
             value={activoId}
             onChange={(e) => setActivoId(Number(e.target.value))}
-            className="w-full rounded border p-2"
+            className="w-full h-11 rounded-lg border border-input bg-background px-3 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
           >
-            <option value="">Selecciona un activo</option>
+            <option value="">Selecciona un activo de la lista...</option>
             {activos.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.nombre}
-              </option>
+              <option key={a.id} value={a.id}>{a.nombre} (ID: {a.id})</option>
             ))}
           </select>
         </div>
 
-        <div>
-          <label className="block mb-1 text-sm font-medium">Fecha de ingreso</label>
+        {/* FECHA */}
+        <div className="space-y-2">
+          <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+            <Calendar className="h-3 w-3" /> Fecha de Ingreso
+          </label>
           <input
             type="date"
             value={fechaIngreso}
             onChange={(e) => setFechaIngreso(e.target.value)}
-            className="w-full rounded border p-2"
+            className="w-full h-11 rounded-lg border border-input bg-background px-3 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
           />
         </div>
 
-        <div>
-          <label className="block mb-1 text-sm font-medium">Responsable</label>
+        {/* COSTO */}
+        <div className="space-y-2">
+          <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+            <DollarSign className="h-3 w-3" /> Costo Estimado
+          </label>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+            <input
+              type="number"
+              value={costo}
+              onChange={(e) => setCosto(e.target.value)}
+              className="w-full h-11 rounded-lg border border-input bg-background pl-7 pr-3 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+              placeholder="0.00"
+            />
+          </div>
+        </div>
+
+        {/* RESPONSABLE */}
+        <div className="space-y-2 md:col-span-2">
+          <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+            <User className="h-3 w-3" /> Responsable / Técnico
+          </label>
           <input
             type="text"
             value={responsable}
             onChange={(e) => setResponsable(e.target.value)}
-            className="w-full rounded border p-2"
-            placeholder="Nombre del técnico o empresa"
+            className="w-full h-11 rounded-lg border border-input bg-background px-3 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+            placeholder="Nombre del encargado o empresa externa"
           />
         </div>
 
-        <div>
-          <label className="block mb-1 text-sm font-medium">Descripción del problema</label>
+        {/* DESCRIPCIÓN */}
+        <div className="space-y-2 md:col-span-2">
+          <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+            <FileText className="h-3 w-3" /> Descripción de la Tarea
+          </label>
           <textarea
             value={descripcion}
             onChange={(e) => setDescripcion(e.target.value)}
-            className="w-full rounded border p-2"
-            rows={3}
+            className="w-full min-h-[100px] rounded-lg border border-input bg-background p-3 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all resize-none"
+            placeholder="Detalla el mantenimiento a realizar..."
           />
         </div>
 
-        <div>
-          <label className="block mb-1 text-sm font-medium">Costo</label>
-          <input
-            type="number"
-            value={costo}
-            onChange={(e) => setCosto(e.target.value)}
-            className="w-full rounded border p-2"
-            placeholder="Opcional"
-          />
+        {/* BOTONES */}
+        <div className="md:col-span-2 flex items-center gap-3 pt-4 border-t border-border">
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="flex-1 h-11 rounded-lg border border-border text-[11px] font-bold uppercase tracking-wider hover:bg-muted transition-all"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="flex-[2] h-11 rounded-lg bg-primary text-white text-[11px] font-bold uppercase tracking-wider hover:opacity-90 shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Guardando...
+              </>
+            ) : (
+              "Guardar Mantenimiento"
+            )}
+          </button>
         </div>
-
-        <button
-          type="submit"
-          className="bg-primary text-white px-4 py-2 rounded hover:bg-primary/90"
-        >
-          Guardar Mantenimiento
-        </button>
       </form>
     </div>
   )
